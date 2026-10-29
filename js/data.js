@@ -1,0 +1,128 @@
+// Parquet access over the raw route. Copied from maximromanov/ngramreader@77f305a js/data.js (fetchRetry, readWhole,
+// manifests, footers, pool, labels loader); changed: readByIds -> readByKey (the key column is named, here bookID),
+// loadStatic loads the classifier's tables.
+// - small tables: whole-file GET (browser-cacheable);
+// - per-book rows: only the parts whose manifest bookID range covers the book, and inside them only the row groups whose
+//   bookID min/max statistics can contain it (HTTP range requests; a single "Range" header is CORS-safelisted, so no
+//   preflight; no other custom headers are ever sent).
+import { LIBS } from './config.js'
+
+// fetch with retries: transient network errors and 5xx responses are retried up to 3 times (0.5 s, 1.5 s back-off)
+export async function fetchRetry(url, init) {
+  let last
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, init)
+      if (res.status < 500) return res
+      last = new Error(`HTTP ${res.status} for ${url}`)
+    } catch (e) { last = e }
+    await new Promise(r => setTimeout(r, attempt === 0 ? 500 : 1500))
+  }
+  throw last
+}
+
+let libsPromise
+export const libs = () => (libsPromise ??= Promise.all([import(LIBS.hyparquet), import(LIBS.compressors)])
+  .then(([hp, c]) => ({ ...hp, compressors: c.compressors })))
+
+const manifests = new Map()   // dir -> Promise<rows>
+const footers = new Map()     // url -> Promise<{ file, metadata, rowStarts }>
+
+export async function readWhole(url, columns) {
+  const { parquetMetadata, parquetReadObjects, compressors } = await libs()
+  const res = await fetchRetry(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`)
+  const file = await res.arrayBuffer()
+  return parquetReadObjects({ file, metadata: parquetMetadata(file), columns, compressors })
+}
+
+function manifest(dir) {
+  if (!manifests.has(dir)) manifests.set(dir, readWhole(dir + 'manifest.parquet'))
+  return manifests.get(dir)
+}
+function footer(url, byteLength) {
+  if (!footers.has(url)) footers.set(url, (async () => {
+    const { asyncBufferFromUrl, parquetMetadataAsync } = await libs()
+    const file = await asyncBufferFromUrl({ url, byteLength, fetch: fetchRetry })
+    const metadata = await parquetMetadataAsync(file)
+    const rowStarts = []; let r = 0
+    for (const rg of metadata.row_groups) { rowStarts.push(r); r += Number(rg.num_rows) }
+    return { file, metadata, rowStarts }
+  })())
+  return footers.get(url)
+}
+
+// run tasks with a concurrency limit
+async function pool(tasks, limit = 6) {
+  const out = new Array(tasks.length); let i = 0
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+    while (i < tasks.length) { const k = i++; out[k] = await tasks[k]() }
+  }))
+  return out
+}
+
+// rows (as objects) of a manifest-indexed table whose key column (column 0) is one of keys, in table order
+export async function readByKey(dir, keys, { key = 'bookID', columns } = {}) {
+  const { parquetReadObjects, compressors } = await libs()
+  const sorted = [...new Set(keys)].sort((a, b) => a - b)
+  if (!sorted.length) return []
+  const keySet = new Set(sorted)
+  const covers = (lo, hi) => { let a = 0, b = sorted.length; while (a < b) { const m = (a + b) >> 1; if (sorted[m] < lo) a = m + 1; else b = m } return a < sorted.length && sorted[a] <= hi }
+  const man = await manifest(dir)
+  const jobs = []
+  for (const m of man) {
+    if (!covers(Number(m.id_min), Number(m.id_max))) continue
+    const url = dir + m.file
+    const { file, metadata, rowStarts } = await footer(url, Number(m.bytes))
+    metadata.row_groups.forEach((rg, k) => {
+      const st = rg.columns[0].meta_data.statistics            // column 0 = the key
+      if (covers(Number(st.min_value), Number(st.max_value))) jobs.push({ file, metadata, rowStart: rowStarts[k], rowEnd: rowStarts[k] + Number(rg.num_rows) })
+    })
+  }
+  const parts = await pool(jobs.map(j => async () => {
+    const rows = await parquetReadObjects({ file: j.file, metadata: j.metadata, rowStart: j.rowStart, rowEnd: j.rowEnd, columns, compressors })
+    return rows.filter(r => keySet.has(Number(r[key])))
+  }))
+  return parts.flat()
+}
+
+// all data the views need besides one book's rows; loaded once per session
+let staticData
+export function loadStatic(base) {
+  return (staticData ??= (async () => {
+    const [books, urls, mainData, rollingAuthors, compsLabels, typesFinal, bookLinks, entropy, labels] = await Promise.all([
+      readWhole(base + 'data_BC/metadata_books.parquet', ['bookID', 'bookURI']),
+      readWhole(base + 'data_BC/metadata_books_urls.parquet'),
+      readWhole(base + 'data_BC/main_data.parquet'),
+      readWhole(base + 'data_BC/rolling_authors.parquet'),
+      readWhole(base + 'data_BC/comps_labels.parquet'),
+      fetchRetry(base + 'data_BC/types_final.tsv').then(r => r.text()).then(parseTSV),
+      fetchRetry(base + 'derived/book_links.tsv').then(r => r.text()).then(parseTSV),   // release-pinned book paths
+      readWhole(base + 'classifier/entropy_complete.parquet'),
+      loadLabels(base),
+    ])
+    return { books, urls, mainData, rollingAuthors, compsLabels, typesFinal, bookLinks, entropy, labels }
+  })())
+}
+function parseTSV(text) {
+  const [head, ...rows] = text.replace(/\r/g, '').trim().split('\n')
+  const cols = head.split('\t')
+  return rows.map(l => Object.fromEntries(l.split('\t').map((v, i) => [cols[i], v])))
+}
+
+// readable working labels (labels/ in the data repository), shared with the NgramReader; whole-file GETs,
+// browser-cacheable; loaded once per session. Returns { books: Map(bookURI -> row), authors: Map(authorURI -> row) }.
+let labelsData
+export function loadLabels(base) {
+  return (labelsData ??= (async () => {
+    const [books, authors] = await Promise.all(['labels/book_labels.tsv', 'labels/author_labels.tsv'].map(f =>
+      fetchRetry(base + f).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} for ${base + f}`); return r.text() }).then(parseQuotedTSV)))
+    return { books: new Map(books.map(r => [r.bookURI, r])), authors: new Map(authors.map(r => [r.authorURI, r])) }
+  })())
+}
+// TSV with double-quoted fields and doubled embedded quotes (R write.table(quote = TRUE, qmethod = "double")); NA -> null
+function parseQuotedTSV(text) {
+  const field = v => v === 'NA' ? null : v.length > 1 && v[0] === '"' && v[v.length - 1] === '"' ? v.slice(1, -1).replace(/""/g, '"') : v
+  const [head, ...rows] = text.replace(/\r/g, '').replace(/\n$/, '').split('\n').map(l => l.split('\t').map(field))
+  return rows.map(r => Object.fromEntries(head.map((c, i) => [c, r[i]])))
+}
