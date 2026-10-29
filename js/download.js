@@ -1,3 +1,4 @@
+// Copied unchanged from maximromanov/ngramreader@77f305a js/download.js.
 // Downloads: TSV per table (UTF-8, header row, character fields and column names in double quotes, embedded
 // quotes doubled, missing values as NA, numbers in shortest round-trip form) and "all data" as one zip with a
 // README.txt, built in the browser (fflate).

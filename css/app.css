@@ -67,3 +67,28 @@ footer { margin-top: 40px; padding-bottom: 30px; font-size: 0.9rem; color: var(-
   .controls { gap: 8px; }
   #search { width: 100%; }
 }
+
+/* ---- Book Classifier additions ---------------------------------------------------------------------------------- */
+header h1 a.home { color: var(--fg); text-decoration: none; }
+.searchbox { position: relative; margin: 6px 0 14px; }
+.searchbox input { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.results-list { position: absolute; z-index: 10; left: 0; right: 0; max-height: 70vh; overflow-y: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.08); padding: 4px 12px 10px; }
+.results-list h3 { margin: 10px 0 4px; font-size: .95rem; color: var(--muted); }
+.results-list ul { list-style: none; margin: 0; padding: 0; }
+.results-list li { padding: 4px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.results-list code, .profile-head code { font-size: .8em; }
+.ar { font-family: "Amiri", "Scheherazade New", "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 1.08rem; unicode-bidi: isolate; }
+.ar-line { margin: 2px 0 6px; }
+.profile-head h1 { font-size: 1.5rem; margin: 10px 0 2px; overflow-wrap: anywhere; }
+.panel { margin-top: 26px; padding-top: 6px; border-top: 1px solid var(--line); }
+.panel h2 { font-size: 1.15rem; }
+.nodata { color: var(--muted); font-style: italic; padding: 10px 0; }
+.chart.radar { min-height: 560px; }
+.dl button { margin: 4px 6px 0 0; }
+.headers-ctl { margin: 10px 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; }
+.headers-ctl label { margin-right: 12px; white-space: nowrap; }
+.headers-ctl details { margin-top: 6px; }
+details.essay { margin-top: 36px; border-top: 1px solid var(--line); padding-top: 10px; }
+details.essay summary { cursor: pointer; font-weight: bold; }
+.intro-text { font-size: 1.02rem; }
+@media (max-width: 600px) { .chart.radar { min-height: 420px; } .profile-head h1 { font-size: 1.25rem; } }

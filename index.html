@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenITI Book Classifier</title>
+<meta name="description" content="Book typology of the works in the OpenITI corpus of premodern Arabic texts (release 2023.1.8): complete-text and rolling assessments, entropy, TF-IDF neighbours, author profiles. In the browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpolygon points=%228,1 15,6 12,15 4,15 1,6%22 stroke=%22%23006400%22 stroke-width=%221.5%22 fill=%22none%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header>
+  <h1><a href="./" class="home">OpenITI Book Classifier</a></h1>
+  <p class="sub">ADHFAIS APP{ENDIX} 2: M10 Book Classification, 2025 (OpenITI, Release ver. 2023.1.8) · companion of the <a href="https://maximromanov.github.io/ngramreader/">OpenITI NgramReader</a></p>
+  <div class="searchbox">
+    <input type="search" id="q" autocomplete="off" disabled placeholder="Loading …" aria-label="Search books and authors">
+    <div id="results-list" class="results-list" hidden></div>
+  </div>
+  <div id="messages" role="alert"></div>
+  <div id="status" role="status" hidden></div>
+</header>
+
+<main>
+<section id="start">
+  <div id="intro-text" class="intro-text"></div>
+  <h2>How to use</h2>
+  <ul>
+    <li>Type a few letters of a title, an author's name (in transliteration or Arabic) or an OpenITI URI into the search box; matching ignores case and diacritics (“tabari tarikh” finds <i>Taʾrīḫ al-rusul wa-l-mulūk</i> of al-Ṭabarī). Choose a book or an author.</li>
+    <li>A <b>book profile</b> shows the book's typology as a whole (radar) and along the text (rolling assessment), the entropy of its vocabulary along the text and against all books, its nearest books by vocabulary (TF-IDF), and the profile of its author. Section headers can be shown on the rolling plots.</li>
+    <li>An <b>author profile</b> shows the author's typology over all their books and the list of the books.</li>
+    <li>Profiles have their own addresses, <code>?book=&lt;bookURI&gt;</code> and <code>?author=&lt;authorURI&gt;</code>; the NgramReader links to them from its tables of books and authors.</li>
+    <li>Every plot and table can be downloaded: the data behind it as TSV (or all data of a profile as a zip), the plots as SVG or PNG (buttons above each plot).</li>
+  </ul>
+  <h2>Book titles and author names</h2>
+  <p>Titles and names are shown in transliteration with the Arabic beside the OpenITI URI. <b>Book titles and author names are working labels and may contain errors; the URI is authoritative.</b> The labels were generated with a language model; a raised <sup>?</sup> marks a label flagged as uncertain. Without a label the URI is shown.</p>
+</section>
+<div id="profile" hidden></div>
+
+<details class="essay">
+  <summary>Modeling types: the “comparables” approach (essay)</summary>
+  <div id="comparables"></div>
+</details>
+</main>
+
+<footer>
+  <p><b>Citation:</b> Romanov, Maxim. (2025). <i>ADHFAIS App{endix} 2: T10 Book Classification (based on OpenITI, Release ver. 2023.1.8)</i> (Version 1) [Software]. Zenodo. <a href="https://doi.org/10.5281/zenodo.15663089">https://doi.org/10.5281/zenodo.15663089</a></p>
+  <p><b>Data:</b> derived from OpenITI release 2023.1.8 (<a href="https://doi.org/10.5281/zenodo.10007820">https://doi.org/10.5281/zenodo.10007820</a>), CC BY-NC-SA 4.0; code under the MIT License (<a href="https://github.com/maximromanov/classifier">github.com/maximromanov/classifier</a>).</p>
+  <p class="logos">
+    <img src="img/eis1600_SMALL_mix_blue_white.png" alt="EIS1600" height="50"><img src="img/OpenITI_Logo_SQ.png" alt="OpenITI" height="50"><img src="img/ERC_logo_SQ.png" alt="ERC" height="50"><img src="img/KITAB_UHH_DFG_COLORS.png" alt="KITAB" height="50"><img src="img/EN_DFG_COLORS.png" alt="DFG Emmy Noether" height="50"><img src="img/RM_600.png" alt="Maxim Romanov" height="50">
+  </p>
+  <p id="version" class="version"></p>
+</footer>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

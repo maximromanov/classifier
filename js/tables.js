@@ -1,3 +1,4 @@
+// Copied from maximromanov/ngramreader@77f305a js/tables.js; changed: fold() is exported (used by the search box).
 // Paged, sortable, filterable tables (plain DOM). Click a column header to sort; pages of 25 rows. The filter box keeps
 // rows where any shown column contains the text, ignoring case and diacritics ("dimasq" finds "Dimašq").
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
@@ -41,4 +42,4 @@ export function renderTable(container, rows, columns, { pageSize = 25, render = 
   }
   draw()
 }
-export { esc, fmt }
+export { esc, fmt, fold }
