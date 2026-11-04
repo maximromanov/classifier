@@ -7,7 +7,7 @@ import { radarBookChart, radarAuthorChart, rollingChart, entropyLineChart, boxTy
 import { redraw, setShapes, exportBar } from './chartkit.js'
 import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
-import { panel, tabs, dialogs, citeDialog, copyText } from './ui.js'
+import { panel, tabs, dialogs, citeDialog, copyText, fontControls } from './ui.js'
 import { packState, unpackState } from './share.js'
 import { chartCitation } from './cite.js'
 
@@ -311,6 +311,7 @@ async function init() {
   exportBar($('#x-author'), () => [$('#chart-author')], () => tsv('author_radar'))
   exportBar($('#x-aradar'), () => [$('#chart-aradar')], () => tsv('author_radar'))
   new ResizeObserver(onResize).observe($('#content'))
+  fontControls(() => activeCharts().forEach(el => redraw(el)))
   const [intro, comparables] = await Promise.all([text('intro_short'), text('comparables')])
   $('#intro-text').innerHTML = intro; $('#help-intro').innerHTML = intro; $('#comparables').innerHTML = comparables
   S.wanted = await readHash()
