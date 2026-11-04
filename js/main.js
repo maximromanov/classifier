@@ -88,7 +88,7 @@ async function route() {
 
 // ---- captions -----------------------------------------------------------------------------------------------------
 const today = () => new Date().toISOString().slice(0, 10)
-const footer = () => `${APP.name} · 10-type model · OpenITI ${S.release.release} · data ${dataCommit(S.release).slice(0, 7)} · ${today()} · ${location.href}`
+const footer = () => `<b>SOURCE:</b> ${APP.name} • 10-type model • OpenITI ${S.release.release} • data ${dataCommit(S.release).slice(0, 7)} • ${today()} • <b>LINK:</b> ${location.href}`
 const bookLine = uri => `${asCaption(bookTitleText(uri))} · ${uri}`
 
 // ---- book profile ---------------------------------------------------------------------------------------------------
@@ -157,7 +157,7 @@ function authorData(author) {
   V.authorRows = V.authorBooks.map(r => ({ ...r, Book: bookTitleText(r.bookURI), Arabic: bookLabel(r.bookURI)?.titleAR || null }))
   fileEntry('author_books', V.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'])
 }
-const authorCaption = author => ({ title: 'Author typology: mean rolling score per book type', subtitle: [`${authorNameText(author)} · ${author}`, 'Summary of the rolling assessments of all the author’s books in the OpenITI corpus.'], footer: footer() })
+const authorCaption = author => ({ title: 'Author typology: mean rolling score per book type', subtitle: [`${authorNameText(author)} · ${author}`], note: 'Summary of the rolling assessments of all the author’s books in the OpenITI corpus.', footer: footer() })
 const authorBooksTableDraw = host => renderTable(host, S.view.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
 
 // headers: only stored levels H1, H2; confirmed solid, unconfirmed dashed
@@ -173,7 +173,7 @@ function textCaption(uri) {
   const V = S.view, on = V.shownHeaders.filter(h => V.levelsOn.has(h.level))
   const parts = [V.rollingSeries ? 'Type scores (0–1) in rolling windows every 200 tokens' : null, V.entropyRows.length ? `${V.rollingSeries ? 'lower panel: ' : ''}unigram and bigram entropy` : null,
     on.length ? `vertical lines: ${[...V.levelsOn].sort().map(l => `H${l}`).join(', ')} headers (${headerKind(on)})` : null].filter(Boolean)
-  return { title: V.rollingSeries ? 'Book types along the text' : 'Entropy along the text', subtitle: [bookLine(uri), parts.join(' · ')], footer: footer() }
+  return { title: V.rollingSeries ? 'Book types along the text' : 'Entropy along the text', subtitle: [bookLine(uri)], note: `${parts.join(' · ')}.`, footer: footer() }
 }
 function drawHeaderControls() {
   const V = S.view, box = $('#hdr-ctl'), H = V.shownHeaders
@@ -195,7 +195,7 @@ async function drawTab(id) {
   if (id === 'overview') {
     $('#note-radar').innerHTML = await text('assessment_book')
     await radarBookChart($('#chart-radar'), V.radar, { filename: `${uri}_RADAR`, caption: { title: 'Book typology: complete text, rolling windows and the period',
-      subtitle: [bookLine(uri), `Blue: complete text; ${V.radar.hasRolling ? 'orange: mean of the rolling windows; ' : ''}green: types of the books within ±50 lunar years.`], footer: footer() } })
+      subtitle: [bookLine(uri)], note: `Blue: complete text; ${V.radar.hasRolling ? 'orange: mean of the rolling windows; ' : ''}green: types of the books within ±50 lunar years.`, footer: footer() } })
     const nd = $('#nodata-radar'); nd.hidden = V.radar.hasRolling; nd.textContent = `Rolling Assessment: ${NO_DATA}`
     const rows = [...V.radar.rows].sort((a, b) => b.complete - a.complete)
     renderTable($('#tbl-top'), rows, ['type', 'complete', 'rolling', 'period'])
@@ -206,11 +206,11 @@ async function drawTab(id) {
     V.textDisplay = await throughTextChart(el, V.rollingSeries, V.entropyRows, { filename: `${uri}_THROUGH_THE_TEXT`, caption: textCaption(uri), shapes: headerShapes(V.shownHeaders, V.levelsOn) })
     el.style.height = `${el._kit.layout.height}px`
   } else if (id === 'entropy') {
-    const sub = (v, what) => [bookLine(uri), `${what} Unique ${v.col.includes('Uni') ? 'unigrams' : 'bigrams'} are excluded (2up). Value of this book: ${v.value.toFixed(3)}.`]
-    await boxTypesChart($('#chart-entuni'), V.types_unigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Unigrams2up`, caption: { title: 'Unigram entropy across all book types', subtitle: sub(V.types_unigrams, 'Orange box: the type of this book; orange line: this book.'), footer: footer() } })
-    await boxTypesChart($('#chart-entbi'), V.types_bigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Bigrams2up`, caption: { title: 'Bigram entropy across all book types', subtitle: sub(V.types_bigrams, 'Orange box: the type of this book; orange line: this book.'), footer: footer() } })
-    await boxTypeTimeChart($('#chart-timeuni'), V.time_unigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Unigrams2up`, caption: { title: `Unigram entropy within the type over time: ${esc(V.time_unigrams.classLabel)}`, subtitle: sub(V.time_unigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.'), footer: footer() } })
-    await boxTypeTimeChart($('#chart-timebi'), V.time_bigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Bigrams2up`, caption: { title: `Bigram entropy within the type over time: ${esc(V.time_bigrams.classLabel)}`, subtitle: sub(V.time_bigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.'), footer: footer() } })
+    const sub = (v, what) => ({ subtitle: [bookLine(uri)], note: `${what} Unique ${v.col.includes('Uni') ? 'unigrams' : 'bigrams'} are excluded (2up). Value of this book: ${v.value.toFixed(3)}.`, footer: footer() })
+    await boxTypesChart($('#chart-entuni'), V.types_unigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Unigrams2up`, caption: { title: 'Unigram entropy across all book types', ...sub(V.types_unigrams, 'Orange box: the type of this book; orange line: this book.') } })
+    await boxTypesChart($('#chart-entbi'), V.types_bigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Bigrams2up`, caption: { title: 'Bigram entropy across all book types', ...sub(V.types_bigrams, 'Orange box: the type of this book; orange line: this book.') } })
+    await boxTypeTimeChart($('#chart-timeuni'), V.time_unigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Unigrams2up`, caption: { title: `Unigram entropy within the type over time: ${esc(V.time_unigrams.classLabel)}`, ...sub(V.time_unigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.') } })
+    await boxTypeTimeChart($('#chart-timebi'), V.time_bigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Bigrams2up`, caption: { title: `Bigram entropy within the type over time: ${esc(V.time_bigrams.classLabel)}`, ...sub(V.time_bigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.') } })
   } else if (id === 'similar') {
     $('#note-tfidf').innerHTML = await text('tfidf_comps')
     renderTable($('#tbl-tfidf'), V.tfidfRows, ['rank', 'Book', 'Arabic', 'bookURI', 'similarity'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })

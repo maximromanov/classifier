@@ -9,7 +9,7 @@ This version runs entirely in the browser: plain HTML, CSS and JavaScript on Git
 - **Search** over readable titles, author names, Arabic and URIs (case and diacritics ignored).
 - **Book profile** (`?book=<bookURI>`), with tabs: **Overview** (radar with three layers: complete text, mean of the rolling windows, types of books within ±50 years; top types); **Through the text** (rolling type scores and rolling entropy on one axis, with section headers H1 and H2: H1 on by default; solid lines for annotated versions, dashed for others; collapsed headers table); **Entropy compared** (boxplots across all types and within the book's type over time); **Similar books** (TF-IDF neighbours, top 250, with similarity); **Author** (author radar and books).
 - **Author profile** (`?author=<authorURI>`), with tabs **Overview** (name, Arabic, death date, author radar) and **Books**.
-- **Top bar:** what the page shows, with *Cite these results* (Chicago, APA, BibTeX, RIS), *Copy link* and *Download all*. The active tab and header choices are in the link (`#v=2&s=…`).
+- **Top bar:** what the page shows, with *Cite these results* (Chicago, APA, BibTeX, RIS), *Copy link* and *Download all*. The active tab and header choices are in the link (`#2…`).
 - **Downloads:** the data behind every plot and table as TSV (UTF-8, double-quoted fields, doubled quotes), all data of a profile as a zip with a README; plots as SVG or PNG, in three sizes (Slide 1600 × 900, Paper about 1000 px wide, As on screen), with their caption inside the image.
 - Panels without data (9 books have no rolling windows, 53 are not in the whole-text entropy table) say "No data for this text."
 
