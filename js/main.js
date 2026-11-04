@@ -3,7 +3,7 @@
 import { APP, CITATION, SHOW_UNCONFIRMED_HEADERS, RELEASES, DEFAULT_RELEASE, dataBase, dataCommit, ngramreaderURL } from './config.js'
 import { loadStatic, readByKey } from './data.js'
 import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, headersTable, authorOfURI, TYPES } from './compute.js'
-import { radarBookChart, radarAuthorChart, throughTextChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
+import { radarBookChart, radarAuthorChart, rollingChart, entropyLineChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
 import { redraw, setShapes, exportBar } from './chartkit.js'
 import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
@@ -170,19 +170,21 @@ function headersState(all) {
   V.headerRows = tv; if (H.length) fileEntry('headers', tv, ['level', 'header', 'pos', 'Confirmed', 'status'])
 }
 const headerKind = H => { const c = H.filter(h => h.confirmed).length; return c === H.length ? 'solid lines: headers of an annotated version' : c === 0 ? 'dashed lines: headers from a not yet annotated version; may be unreliable' : 'solid lines: confirmed headers; dashed: unconfirmed' }
-function textCaption(uri) {
+function textCaptions(uri) {
   const V = S.view, on = V.shownHeaders.filter(h => V.levelsOn.has(h.level))
-  const parts = [V.rollingSeries ? 'Type scores (0–1) in rolling windows every 200 tokens' : null, V.entropyRows.length ? `${V.rollingSeries ? 'lower panel: ' : ''}unigram and bigram entropy` : null,
-    on.length ? `vertical lines: ${[...V.levelsOn].sort().map(l => `H${l}`).join(', ')} headers (${headerKind(on)})` : null].filter(Boolean)
-  return { title: V.rollingSeries ? 'Book types along the text' : 'Entropy along the text', subtitle: [bookLine(uri)], note: `${parts.join(' · ')}.`, footer: footer() }
+  const lines = on.length ? ` Vertical lines: ${[...V.levelsOn].sort().map(l => `H${l}`).join(', ')} headers (${headerKind(on)}).` : ''
+  return { rolling: { title: 'Book types along the text', subtitle: [bookLine(uri)], note: `Type scores (0–1) in rolling windows every 200 tokens.${lines}`, footer: footer() },
+    entropy: { title: 'Entropy along the text', subtitle: [bookLine(uri)], note: `Unigram and bigram entropy in rolling windows every 200 tokens.${lines}`, footer: footer() } }
 }
+const textCharts = () => ['#chart-rolling', '#chart-entropy'].map(q => $(q)).filter(el => el._kit)
 function drawHeaderControls() {
   const V = S.view, box = $('#hdr-ctl'), H = V.shownHeaders
   $('#hdr-note').hidden = !H.some(h => !h.confirmed)
   box.innerHTML = H.length ? `<span>Headers:</span>${V.headerLevels.map(l => `<label><input type="checkbox" class="hdr-lv" value="${l}" ${V.levelsOn.has(l) ? 'checked' : ''}> H${l} (${H.filter(h => h.level === l).length})</label>`).join('')}` : ''
   box.querySelectorAll('.hdr-lv').forEach(c => c.onchange = async () => {
     V.levelsOn = new Set([...box.querySelectorAll('.hdr-lv:checked')].map(x => Number(x.value)))
-    await updateURL(); const el = $('#chart-text'); el._kit.caption = textCaption(V.bookURI); el._kit.layout = { ...el._kit.layout, shapes: headerShapes(H, V.levelsOn) }; await redraw(el)
+    await updateURL(); const cap = textCaptions(V.bookURI), shapes = headerShapes(H, V.levelsOn)
+    for (const [el, c] of [[$('#chart-rolling'), cap.rolling], [$('#chart-entropy'), cap.entropy]]) if (el._kit) { el._kit.caption = c; el._kit.layout = { ...el._kit.layout, shapes }; await redraw(el) }
   })
   const d = $('#hdr-table'); d.hidden = !H.length
   if (H.length) { const nText = V.headerRows.filter(r => r.header !== 'header text not available').length
@@ -203,9 +205,12 @@ async function drawTab(id) {
   } else if (id === 'text') {
     $('#note-rolling').innerHTML = await text('assessment_rolling'); $('#note-entropy').innerHTML = await text('assessment_rolling_ent')
     drawHeaderControls()
-    const el = $('#chart-text')
-    V.textDisplay = await throughTextChart(el, V.rollingSeries, V.entropyRows, { filename: `${uri}_THROUGH_THE_TEXT`, caption: textCaption(uri), shapes: headerShapes(V.shownHeaders, V.levelsOn) })
-    el.style.height = `${el._kit.layout.height}px`
+    const cap = textCaptions(uri), shapes = headerShapes(V.shownHeaders, V.levelsOn), has = !!V.rollingSeries, hasE = V.entropyRows.length > 0
+    const last = Math.max(...V.rollingRows.map(r => r.start), ...V.entropyRows.map(r => r.start)), range = [0, last]
+    $('#chart-rolling').hidden = !has; $('#nodata-rolling').hidden = has; $('#chart-entropy').hidden = !hasE; $('#nodata-entropy').hidden = hasE
+    V.textDisplay = {}
+    if (has) V.textDisplay.rolling = await rollingChart($('#chart-rolling'), V.rollingSeries, { filename: `${uri}_ROLLING`, caption: cap.rolling, shapes, range })
+    if (hasE) V.textDisplay.entropy = await entropyLineChart($('#chart-entropy'), V.entropyRows, { filename: `${uri}_ROLLING_ENTROPY`, caption: cap.entropy, shapes, range })
   } else if (id === 'entropy') {
     const sub = (v, what) => ({ subtitle: [bookLine(uri)], note: `${what} Unique ${v.col.includes('Uni') ? 'unigrams' : 'bigrams'} are excluded (2up). Value of this book: ${v.value.toFixed(3)}.`, footer: footer() })
     await boxTypesChart($('#chart-entuni'), V.types_unigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Unigrams2up`, caption: { title: 'Unigram entropy across all book types', ...sub(V.types_unigrams, 'Orange box: the type of this book; orange line: this book.') } })
@@ -301,7 +306,7 @@ async function init() {
   $('#download-all').onclick = downloadAll
   $('#dl-tfidf').onclick = () => tsv('tfidf'); $('#dl-author').onclick = () => tsv('author_books'); $('#dl-abooks').onclick = () => tsv('author_books'); $('#dl-headers').onclick = () => tsv('headers')
   exportBar($('#x-radar'), () => [$('#chart-radar')], () => tsv('radar'))
-  exportBar($('#x-text'), () => [$('#chart-text')], () => { tsv('rolling'); tsv('rolling_entropy') })
+  exportBar($('#x-text'), textCharts, () => { tsv('rolling'); tsv('rolling_entropy') })
   exportBar($('#x-entropy'), () => ['#chart-entuni', '#chart-entbi', '#chart-timeuni', '#chart-timebi'].map(s => $(s)), () => { for (const n of ['entropy_types_unigrams', 'entropy_types_bigrams', 'entropy_type_time_unigrams', 'entropy_type_time_bigrams']) tsv(n) })
   exportBar($('#x-author'), () => [$('#chart-author')], () => tsv('author_radar'))
   exportBar($('#x-aradar'), () => [$('#chart-aradar')], () => tsv('author_radar'))

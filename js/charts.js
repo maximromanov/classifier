@@ -34,35 +34,27 @@ function downsample(x, ys, k) {
   for (let i = 0; i < x.length; i += k) { X.push(x[i]); ys.forEach((y, j) => { let m = -Infinity; for (let t = i; t < Math.min(i + k, x.length); t++) if (y[t] > m) m = y[t]; Y[j].push(m) }) }
   return { x: X, ys: Y }
 }
-export const TYPE_PANEL = 470, ENTROPY_PANEL = 400              // plot heights in px; the entropy panel: about twice its v1 height relative to the type panel
 // confirmed headers: thin solid black; unconfirmed: thin dashed grey
 export const headerShapes = (headers, levels) => headers.filter(h => levels.has(h.level)).map(h => ({ type: 'line', xref: 'x', yref: 'paper', x0: h.pos, x1: h.pos, y0: 0, y1: 1, layer: 'above', line: h.confirmed ? { color: 'black', width: 0.7 } : { color: '#8a8a8a', width: 0.7, dash: '3px,3px' } }))
+const TYPE_PLOT = 470, ENTROPY_PLOT = 400                       // plot heights in px
+// the two plots stand one above the other: same left and right margins and x range, so positions line up
+const alongText = (range, extra) => ({ margin: { l: narrow() ? 60 : 240, r: 14, b: 56 }, hovermode: 'closest', exportHeight: { slide: 900, paper: 1000 }, xaxis: { range, tickformat: '~s', showgrid: false, linecolor: AXIS, title: { text: 'Position in the text (tokens)', font: { size: 12 } } }, ...extra })
 
-export async function throughTextChart(el, series, entropyRows, { caption, filename, shapes }) {
-  const has = series?.length && series[0].x.length, hasE = entropyRows?.length, traces = []
-  const st = STYLES[0], layout = { margin: { l: narrow() ? 60 : 240, r: 14, b: 56 }, showlegend: false, hovermode: 'closest', shapes, height: 170 + (has ? TYPE_PANEL : 0) + (hasE ? ENTROPY_PANEL : 0) + 110, exportHeight: { slide: 900, paper: 1300 } }
-  const gap = has && hasE ? 0.05 : 0, h1 = has ? (hasE ? (1 - gap) * TYPE_PANEL / (TYPE_PANEL + ENTROPY_PANEL) : 1) : 0
-  let info = {}
-  if (has) {
-    const k = binsOf(series[0].x.length), d = downsample(series[0].x, series.map(s => s.y), k); info.rolling = { downsampled: !!k, binSize: k ?? 1 }
-    series.forEach((s, j) => {
-      const base = d.x.map(() => s.order), y1 = d.ys[j].map(v => v + s.order)
-      traces.push({ type: 'scatter', x: d.x, y: base, mode: 'lines', line: { color: '#d6d6d6', width: 0.8 }, hoverinfo: 'skip', showlegend: false })
-      traces.push({ type: 'scatter', x: d.x, y: y1, mode: 'lines', fill: 'tonexty', fillcolor: `rgba(${st.rgb},0.6)`, line: { color: st.color, width: 0.8 }, showlegend: false, customdata: d.ys[j], hovertemplate: `${s.classLabel}<br>window from token %{x:,}<br>score %{customdata:.4f}<extra></extra>` })
-    })
-    layout.yaxis = { domain: [1 - h1, 1], tickvals: series.map(s => s.order), ticktext: series.map(s => (narrow() ? s.classLabel.slice(0, 3) : s.classLabel)), tickfont: { size: 12 }, zeroline: false, showgrid: false, fixedrange: true }
-  }
-  if (hasE) {
-    const x = entropyRows.map(r => r.start), k = binsOf(x.length), d = downsample(x, [entropyRows.map(r => r.ENTRPOYUNI), entropyRows.map(r => r.ENTROPYBI)], k); info.entropy = { downsampled: !!k, binSize: k ?? 1 }
-    const ya = has ? 'y2' : 'y', [a, b] = [STYLES[0], STYLES[1]]
-    traces.push({ type: 'scatter', x: d.x, y: d.ys[0], yaxis: ya, mode: 'lines', name: 'unigram entropy', line: { color: a.color, dash: a.dash, width: 1.4 } })
-    traces.push({ type: 'scatter', x: d.x, y: d.ys[1], yaxis: ya, mode: 'lines', name: 'bigram entropy', line: { color: b.color, dash: b.dash, width: 1.4 } })
-    layout[has ? 'yaxis2' : 'yaxis'] = { domain: [0, has ? 1 - h1 - gap : 1], gridcolor: GRID, zeroline: false, linecolor: AXIS, title: { text: 'entropy', font: { size: 12 } } }
-    layout.showlegend = true; layout.legend = { orientation: 'h', x: 0, xanchor: 'left', y: (has ? 1 - h1 - gap : 1) + 0.002, yanchor: 'bottom', font: { size: 12 }, bgcolor: 'rgba(255,255,255,0.8)' }
-  }
-  layout.xaxis = { anchor: has && hasE ? 'y2' : 'y', tickformat: '~s', showgrid: false, linecolor: AXIS, title: { text: 'Position in the text (tokens)', font: { size: 12 } } }
-  await plot(el, traces, layout, caption, filename)
-  return info
+export async function rollingChart(el, series, { caption, filename, shapes, range }) {
+  const st = STYLES[0], k = binsOf(series[0].x.length), d = downsample(series[0].x, series.map(s => s.y), k), traces = []
+  series.forEach((s, j) => {
+    const base = d.x.map(() => s.order), y1 = d.ys[j].map(v => v + s.order)
+    traces.push({ type: 'scatter', x: d.x, y: base, mode: 'lines', line: { color: '#d6d6d6', width: 0.8 }, hoverinfo: 'skip', showlegend: false })
+    traces.push({ type: 'scatter', x: d.x, y: y1, mode: 'lines', fill: 'tonexty', fillcolor: `rgba(${st.rgb},0.6)`, line: { color: st.color, width: 0.8 }, showlegend: false, customdata: d.ys[j], hovertemplate: `${s.classLabel}<br>window from token %{x:,}<br>score %{customdata:.4f}<extra></extra>` })
+  })
+  await plot(el, traces, alongText(range, { plotHeight: TYPE_PLOT, showlegend: false, shapes, yaxis: { tickvals: series.map(s => s.order), ticktext: series.map(s => (narrow() ? s.classLabel.slice(0, 3) : s.classLabel)), tickfont: { size: 12 }, zeroline: false, showgrid: false, fixedrange: true } }), caption, filename)
+  return { downsampled: !!k, binSize: k ?? 1 }
+}
+export async function entropyLineChart(el, rows, { caption, filename, shapes, range }) {
+  const x = rows.map(r => r.start), k = binsOf(x.length), d = downsample(x, [rows.map(r => r.ENTRPOYUNI), rows.map(r => r.ENTROPYBI)], k), [a, b] = [STYLES[0], STYLES[1]]
+  await plot(el, [{ type: 'scatter', x: d.x, y: d.ys[0], mode: 'lines', name: 'unigram entropy', line: { color: a.color, dash: a.dash, width: 1.4 } }, { type: 'scatter', x: d.x, y: d.ys[1], mode: 'lines', name: 'bigram entropy', line: { color: b.color, dash: b.dash, width: 1.4 } }],
+    alongText(range, { plotHeight: ENTROPY_PLOT, showlegend: true, legendRoom: 1, legend: { orientation: 'h', x: 0, y: 1, yanchor: 'bottom', font: { size: 13 } }, shapes, yaxis: { gridcolor: GRID, zeroline: false, linecolor: AXIS, title: { text: 'entropy', font: { size: 12 } } } }), caption, filename)
+  return { downsampled: !!k, binSize: k ?? 1 }
 }
 
 // ---- entropy boxplots ---------------------------------------------------------------------------------------------
