@@ -1,6 +1,7 @@
 // The data behind every view, ported from the deployed R app (ADHFAIS APP{ENDIX} 2, functions_comps.R in
 // adhfais_app2_local_10types.zip, 2025-06-14). Each function names the R code it follows. Plots are drawn from these
 // views (charts.js) and downloads write them (main.js), so what is shown, downloaded and verified is the same data.
+import { byType } from './chartkit.js'
 export const TYPES = ['balagha', 'chronicles', 'fiqh', 'greek', 'hadith', 'kalam', 'medicine', 'poetry', 'tafsir', 'tarajim']  // main_data column order
 const cp = s => Array.from(s)                                   // code points (R str_sub / substr count characters)
 const cmpC = (a, b) => (a < b ? -1 : a > b ? 1 : 0)             // R/dplyr arrange(): C locale = code-point order
@@ -84,9 +85,10 @@ export function radarBook(P, bookURI, rolling) {
 }
 
 // rolling type plot (rollingPlotFunctionWithGGPLOT, 524-639): per type the raw scores along the text, offset by order
+export const undefinedWindow = w => (new Set(TYPES.map(t => w[t])).size === 1 ? 1 : 0)
 export function rollingSeries(P, rolling) {
-  return P.L.filter(l => l.class !== 'undefined').map(l => ({ class: l.class, classLabel: l.classLabel, order: l.order,
-    x: rolling.map(w => w.start), y: rolling.map(w => w[l.class]) }))
+  // ten score series as in R, plus undefined: 1 in a window whose ten scores are all equal (the rule of radarBook; not drawn by R)
+  return P.L.map(l => ({ class: l.class, classLabel: l.classLabel, order: l.order, x: rolling.map(w => w.start), y: rolling.map(w => (l.class === 'undefined' ? undefinedWindow(w) : w[l.class])) }))
 }
 
 // entropy boxplots across types (boxPlot_Entropy, 715-767): every book's whole-text entropy by its type
@@ -134,10 +136,10 @@ export const authorBooksTable = (P, authorURI) => P.booksClassified.filter(b => 
 // headers (headerLocations, 514-520, all levels): position, level, milestone = as.integer(pos / 300)
 // ---- author views without an R counterpart ------------------------------------------------------------------------------
 // all books of an author: whole-text score per type (0.1, the classifier's "nothing found", counted as 0, as in radarBook),
-// columns grouped by top type in the order of the author's ranked types, within a group by score
-export function authorBooksMatrix(P, authorURI, radar) {
+// columns grouped by top type in the common order of types, within a group by score
+export function authorBooksMatrix(P, authorURI) {
   const classOf = new Map(P.L.map(l => [l.classLabel, l.class]))
-  const ranked = (radar ? [...radar.rows].sort((a, b) => b.final - a.final || cmpC(a.axis, b.axis)).map(r => r.type) : P.L.filter(l => l.class !== 'undefined').map(l => l.classLabel))
+  const ranked = P.L.filter(l => l.class !== 'undefined').map(l => l.classLabel).sort(byType)
   const types = ranked.map(t => ({ type: t, class: classOf.get(t) })), rank = new Map(ranked.map((t, i) => [t, i]))
   const top = new Map(); for (const b of authorBooksTable(P, authorURI)) { if (!top.has(b.bookURI)) top.set(b.bookURI, []); top.get(b.bookURI).push(b) }
   const books = (P.authorBooks.get(authorURI) ?? []).filter(u => P.main.has(u)).map(u => { const r = P.main.get(u), t = top.get(u) ?? []
@@ -148,10 +150,10 @@ export function authorBooksMatrix(P, authorURI, radar) {
 }
 // books per top type; a tied book counts under each of its top types
 export function authorTopTypes(P, authorURI) {
-  const rows = authorBooksTable(P, authorURI), n = new Map()
+  const rows = authorBooksTable(P, authorURI), n = new Map(P.L.map(l => [l.classLabel, 0]))     // every type, for the same rows in every profile
   for (const b of rows) n.set(b.comparables, (n.get(b.comparables) ?? 0) + 1)
   const nBooks = new Set(rows.map(b => b.bookURI)).size
-  return { rows: [...n.entries()].map(([type, books]) => ({ type, books })).sort((a, b) => b.books - a.books || cmpC(a.type, b.type)), nBooks, tied: rows.length - nBooks }
+  return { rows: [...n.entries()].map(([type, books]) => ({ type, books })).sort((a, b) => byType(a.type, b.type)), nBooks, tied: rows.length - nBooks }
 }
 
 export const headersTable = rows => rows.map(r => ({ level: Number(r.level), pos: Number(r.pos), milestone: Math.trunc(Number(r.pos) / 300) }))

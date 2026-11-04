@@ -1,6 +1,6 @@
 // Book Classifier charts, drawn from the views of compute.js with the shared chart kit (chartkit.js): style, in-chart
 // captions, exports.
-import { plot, styleOf, narrow, typeBars, shortType, STYLES, GRID, AXIS, MUTED } from './chartkit.js'
+import { plot, styleOf, narrow, typeBars, shortType, byType, STYLES, GRID, AXIS, MUTED } from './chartkit.js'
 
 // ---- radars ------------------------------------------------------------------------------------------------------
 const ring = (theta, r, a) => ({ type: 'scatterpolar', r: theta.map(() => r), theta, fill: 'toself', fillcolor: `rgba(200,200,200,${a})`, line: { color: 'rgba(0,0,0,0)' }, mode: 'lines', hoverinfo: 'skip', showlegend: false })
@@ -27,12 +27,12 @@ export async function radarAuthorChart(el, view, { caption, filename }) {
 const num = v => (v === null || v === undefined ? 'n/a' : v.toFixed(3))
 export async function bookBarsChart(el, view, { caption, filename }) {
   const layers = [['complete', 'Complete Text Assessment', 0], ...(view.hasRolling ? [['rolling', 'Rolling Assessment', 1]] : []), ['period', 'Typology within 100 lunar years', 2]]
-  const sum = r => layers.reduce((a, [k]) => a + (r[k] ?? 0), 0), rows = [...view.rows].sort((a, b) => sum(b) - sum(a) || (a.type < b.type ? -1 : 1))      // combined value across the layers, as in NgramReader
+  const rows = [...view.rows].sort((a, b) => byType(a.type, b.type))
   await typeBars(el, { types: rows.map(r => r.type), scale: 'score', xTitle: 'score (complete text, rolling windows); share of books (period)', caption, filename,
     series: layers.map(([k, name, index]) => ({ name, index, values: rows.map(r => r[k]), hover: rows.map(r => `${name}: ${num(r[k])}`) })) })
 }
 export async function rankedTypesChart(el, view, { caption, filename }) {
-  const rows = [...view.rows].sort((a, b) => b.final - a.final || (a.type < b.type ? -1 : 1))
+  const rows = [...view.rows].sort((a, b) => byType(a.type, b.type))
   await typeBars(el, { types: rows.map(r => r.type), scale: 'score', xTitle: 'mean rolling score', caption, filename,
     series: [{ name: 'score', index: 0, values: rows.map(r => r.final), text: rows.map(r => r.final.toFixed(2)), hover: rows.map(r => `mean rolling score ${num(r.final)}`) }] })
 }
@@ -67,13 +67,14 @@ const TYPE_PLOT = 470, ENTROPY_PLOT = 400                       // plot heights 
 const alongText = (range, extra) => ({ margin: { l: narrow() ? 60 : 240, r: 14, b: 56 }, hovermode: 'closest', exportHeight: { slide: 900, paper: 1000 }, xaxis: { range, tickformat: '~s', showgrid: false, linecolor: AXIS, title: { text: 'Position in the text (tokens)', font: { size: 12 } } }, ...extra })
 
 export async function rollingChart(el, series, { caption, filename, shapes, range }) {
+  const sorted = [...series].sort((a, b) => byType(a.classLabel, b.classLabel)), pos = s => (sorted.length - 1 - sorted.indexOf(s)) * 1.15   // the common order, read from the top
   const st = STYLES[0], k = binsOf(series[0].x.length), d = downsample(series[0].x, series.map(s => s.y), k), traces = []
   series.forEach((s, j) => {
-    const base = d.x.map(() => s.order), y1 = d.ys[j].map(v => v + s.order)
+    const base = d.x.map(() => pos(s)), y1 = d.ys[j].map(v => v + pos(s))
     traces.push({ type: 'scatter', x: d.x, y: base, mode: 'lines', line: { color: '#d6d6d6', width: 0.8 }, hoverinfo: 'skip', showlegend: false })
     traces.push({ type: 'scatter', x: d.x, y: y1, mode: 'lines', fill: 'tonexty', fillcolor: `rgba(${st.rgb},0.6)`, line: { color: st.color, width: 0.8 }, showlegend: false, customdata: d.ys[j], hovertemplate: `${s.classLabel}<br>window from token %{x:,}<br>score %{customdata:.4f}<extra></extra>` })
   })
-  await plot(el, traces, alongText(range, { plotHeight: TYPE_PLOT, showlegend: false, shapes, yaxis: { tickvals: series.map(s => s.order), ticktext: series.map(s => (narrow() ? s.classLabel.slice(0, 3) : s.classLabel)), tickfont: { size: 12 }, zeroline: false, showgrid: false, fixedrange: true } }), caption, filename)
+  await plot(el, traces, alongText(range, { plotHeight: TYPE_PLOT, showlegend: false, shapes, yaxis: { tickvals: series.map(pos), ticktext: series.map(s => (narrow() ? s.classLabel.slice(0, 3) : s.classLabel)), tickfont: { size: 12 }, zeroline: false, showgrid: false, fixedrange: true } }), caption, filename)
   return { downsampled: !!k, binSize: k ?? 1 }
 }
 export async function entropyLineChart(el, rows, { caption, filename, shapes, range }) {
@@ -87,14 +88,14 @@ export async function entropyLineChart(el, rows, { caption, filename, shapes, ra
 const jit = (i, w) => ((Math.sin(i * 12.9898) * 43758.5453) % 1) * w     // deterministic jitter (the R app's is random)
 const HI = STYLES[1]
 export async function boxTypesChart(el, view, { caption, filename }) {
-  const traces = []
+  const traces = [], levels = [...view.levels].sort(byType).reverse()      // the common order, read from the top
   view.groups.forEach(g => {
     traces.push({ type: 'box', orientation: 'h', x: g.values, y: g.values.map(() => g.classLabel), name: g.classLabel, boxpoints: false, fillcolor: g.selected ? `rgba(${HI.rgb},0.55)` : 'rgba(0,0,0,0.3)', line: { color: 'black', width: 1 }, showlegend: false, hoverinfo: 'x' })
-    traces.push({ type: 'scatter', mode: 'markers', x: g.values, y: g.values.map((_, i) => view.levels.indexOf(g.classLabel) + jit(i + 1, 0.5)), yaxis: 'y2', marker: { color: 'rgba(0,0,0,0.25)', size: 3 }, hoverinfo: 'skip', showlegend: false })
+    traces.push({ type: 'scatter', mode: 'markers', x: g.values, y: g.values.map((_, i) => levels.indexOf(g.classLabel) + jit(i + 1, 0.5)), yaxis: 'y2', marker: { color: 'rgba(0,0,0,0.25)', size: 3 }, hoverinfo: 'skip', showlegend: false })
   })
-  const n = view.levels.length
+  const n = levels.length
   await plot(el, traces, { margin: { l: narrow() ? 92 : 240, r: 14, b: 56 }, showlegend: false, height: 600, exportHeight: { slide: 900, paper: 1100 },
-    yaxis: { type: 'category', categoryorder: 'array', categoryarray: view.levels, range: [-0.5, n - 0.5], tickfont: { size: narrow() ? 9 : 12 } }, yaxis2: { overlaying: 'y', range: [-0.5, n - 0.5], visible: false },
+    yaxis: { type: 'category', categoryorder: 'array', categoryarray: levels, range: [-0.5, n - 0.5], tickfont: { size: narrow() ? 9 : 12 } }, yaxis2: { overlaying: 'y', range: [-0.5, n - 0.5], visible: false },
     xaxis: { title: { text: view.col, font: { size: 12 } }, gridcolor: GRID, zeroline: false },
     shapes: [{ type: 'line', xref: 'x', yref: 'paper', x0: view.value, x1: view.value, y0: 0, y1: 1, line: { color: HI.color, width: 2 } }] }, caption, filename)
 }

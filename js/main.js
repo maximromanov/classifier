@@ -2,7 +2,7 @@
 // (?author=<authorURI>), each with tabs. The active tab and header choices are in the hash (see share.js).
 import { APP, CITATION, SHOW_UNCONFIRMED_HEADERS, RELEASES, DEFAULT_RELEASE, dataBase, dataCommit, ngramreaderURL } from './config.js'
 import { loadStatic, readByKey } from './data.js'
-import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, authorBooksMatrix, authorTopTypes, headersTable, authorOfURI, TYPES } from './compute.js'
+import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, authorBooksMatrix, authorTopTypes, undefinedWindow, headersTable, authorOfURI, TYPES } from './compute.js'
 import { radarBookChart, radarAuthorChart, bookBarsChart, rankedTypesChart, allBooksChart, topTypesChart, rollingChart, entropyLineChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
 import { redraw, setShapes, exportBar } from './chartkit.js'
 import { renderTable, esc, fold } from './tables.js'
@@ -131,7 +131,7 @@ async function renderBook(uri) {
   const V = S.view; Object.assign(V, { rollingRows: rows.rolling, entropyRows: rows.entropy, headers: rows.headers })
   // all view data first (the downloads hold every view); charts are drawn when their tab opens
   V.radar = radarBook(P, uri, rows.rolling); fileEntry('radar', V.radar.rows, ['axis', 'type', 'complete', 'rolling', 'period'])
-  if (rows.rolling.length) { V.rollingSeries = rollingSeries(P, rows.rolling); fileEntry('rolling', rows.rolling, ['start', ...TYPES]) }
+  if (rows.rolling.length) { V.rollingSeries = rollingSeries(P, rows.rolling); fileEntry('rolling', rows.rolling.map(w => ({ ...w, undefined: undefinedWindow(w) })), ['start', ...TYPES, 'undefined']) }
   if (rows.entropy.length) fileEntry('rolling_entropy', rows.entropy, ['start', 'ENTRPOYUNI', 'ENTROPYBI'])
   for (const w of ['unigrams', 'bigrams']) {
     const a = V[`types_${w}`] = entropyAcrossTypes(P, uri, w), b = V[`time_${w}`] = entropyTypeTime(P, uri, w)
@@ -158,7 +158,7 @@ function authorData(author) {
   V.authorBooks = authorBooksTable(P, author)
   V.authorRows = V.authorBooks.map(r => ({ ...r, Book: bookTitleText(r.bookURI), Arabic: bookLabel(r.bookURI)?.titleAR || null }))
   fileEntry('author_books', V.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'])
-  V.authorMatrix = authorBooksMatrix(P, author, V.authorRadar); V.authorMatrix.books.forEach(b => { b.label = bookTitleText(b.bookURI).replace(/\*/g, '') })
+  V.authorMatrix = authorBooksMatrix(P, author); V.authorMatrix.books.forEach(b => { b.label = bookTitleText(b.bookURI).replace(/\*/g, '') })
   V.authorTop = authorTopTypes(P, author)
   fileEntry('author_all_books', V.authorMatrix.books.map(b => ({ bookURI: b.bookURI, Book: b.label, topType: b.top.join('; '), ...b.scores })), ['bookURI', 'Book', 'topType', ...V.authorMatrix.types.map(t => t.class)])
   fileEntry('author_top_types', V.authorTop.rows, ['type', 'books'])
@@ -170,8 +170,8 @@ async function drawAuthorChart(viewSel, radarSel) {
   const who = `${authorNameText(author)} · ${author}`
   if (radar) return radarAuthorChart($(radarSel), V.authorRadar, { filename: `${author}_RADAR`, caption: authorCaption(author) })
   if (books) return allBooksChart($(viewSel), V.authorMatrix, { filename: `${author}_ALL_BOOKS`, caption: { title: 'All books at a glance', subtitle: [who], footer: footer(),
-    note: `One column per book, grouped by top type; darker means a higher whole-text score (0–1). Types in the order of the author’s mean rolling scores.${V.authorMatrix.books.some(b => b.top.includes('[U] undefined') || b.top.includes('----')) ? ' Empty columns, at the end: books without a type score.' : ''}` } })
-  return rankedTypesChart($(viewSel), V.authorRadar, { filename: `${author}_RANKED_TYPES`, caption: { ...authorCaption(author), note: `${authorCaption(author).note} Types sorted by score.` } })
+    note: `One column per book, grouped by top type; darker means a higher whole-text score (0–1). Types in alphabetical order.${V.authorMatrix.books.some(b => b.top.includes('[U] undefined') || b.top.includes('----')) ? ' Empty columns, at the end: books without a type score.' : ''}` } })
+  return rankedTypesChart($(viewSel), V.authorRadar, { filename: `${author}_RANKED_TYPES`, caption: { ...authorCaption(author), note: authorCaption(author).note } })
 }
 const paintSwitches = () => { const V = S.view; if (!V) return
   document.querySelectorAll('.sw-bchart button').forEach(b => b.classList.toggle('on', b.dataset.v === V.bookChart))
@@ -191,7 +191,7 @@ const headerKind = H => { const c = H.filter(h => h.confirmed).length; return c 
 function textCaptions(uri) {
   const V = S.view, on = V.shownHeaders.filter(h => V.levelsOn.has(h.level))
   const lines = on.length ? ` Vertical lines: ${[...V.levelsOn].sort().map(l => `H${l}`).join(', ')} headers (${headerKind(on)}).` : ''
-  return { rolling: { title: 'Book types along the text', subtitle: [bookLine(uri)], note: `Type scores (0–1) in rolling windows every 200 tokens.${lines}`, footer: footer() },
+  return { rolling: { title: 'Book types along the text', subtitle: [bookLine(uri)], note: `Type scores (0–1) in rolling windows every 200 tokens; [U] undefined: windows whose ten scores are all equal.${lines}`, footer: footer() },
     entropy: { title: 'Entropy along the text', subtitle: [bookLine(uri)], note: `Unigram and bigram entropy in rolling windows every 200 tokens.${lines}`, footer: footer() } }
 }
 const textCharts = () => ['#chart-rolling', '#chart-entropy'].map(q => $(q)).filter(el => el._kit)
@@ -217,7 +217,7 @@ async function drawTab(id) {
     $('#note-radar').innerHTML = await text('assessment_book')
     const radar = V.bookChart === 'radar'; $('#chart-radar').hidden = !radar; $('#chart-bars').hidden = radar
     const opts = { filename: `${uri}_${radar ? 'RADAR' : 'BARS'}`, caption: { title: 'Book typology: complete text, rolling windows and the period',
-      subtitle: [bookLine(uri)], note: radar ? `Blue: complete text; ${V.radar.hasRolling ? 'orange: mean of the rolling windows; ' : ''}green: types of the books within ±50 lunar years.` : `Blue, solid: complete text; ${V.radar.hasRolling ? 'orange, hatched: mean of the rolling windows; ' : ''}green, light: share of each top type among the books within ±50 lunar years. Types ordered by their combined value.`, footer: footer() } }
+      subtitle: [bookLine(uri)], note: radar ? `Blue: complete text; ${V.radar.hasRolling ? 'orange: mean of the rolling windows; ' : ''}green: types of the books within ±50 lunar years.` : `Blue, solid: complete text; ${V.radar.hasRolling ? 'orange, hatched: mean of the rolling windows; ' : ''}green, light: share of each top type among the books within ±50 lunar years.`, footer: footer() } }
     await (radar ? radarBookChart($('#chart-radar'), V.radar, opts) : bookBarsChart($('#chart-bars'), V.radar, opts))
     const nd = $('#nodata-radar'); nd.hidden = V.radar.hasRolling; nd.textContent = `Rolling Assessment: ${NO_DATA}`
     const rows = [...V.radar.rows].sort((a, b) => b.complete - a.complete)
@@ -275,7 +275,7 @@ function onResize() { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => 
 
 const DESCR = {
   radar: 'the bars and the radar: per type, complete = whole-text score (0.1 counted as 0; undefined = 1 when all ten scores are equal), rolling = mean over the rolling windows, period = share of each top type among books with a death decade within +-50 years.',
-  rolling: 'the rolling type scores of every window (start = token offset of the window; scores 0-1); the plot shows a reduced number of points for long books.',
+  rolling: 'the rolling type scores of every window (start = token offset of the window; scores 0-1; undefined = 1 when all ten scores of the window are equal); the plot shows a reduced number of points for long books.',
   rolling_entropy: 'the rolling unigram and bigram entropy of every window.',
   entropy_types: 'whole-text entropy (2up) of every book by its top type; selectedType = the type of this book; thisBook = 1 for this book.',
   entropy_type_time: 'whole-text entropy (2up) of the books of this book\'s type by century of death (AH/CE).',
