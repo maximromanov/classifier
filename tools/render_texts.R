@@ -14,7 +14,7 @@ for (f in c("intro_short", "assessment_book", "assessment_rolling", "assessment_
     md <- sub("top 1,500 matches", "top 250 matches", md, fixed = TRUE); md <- sub("`distance`", "`similarity`", md, fixed = TRUE) }
   if (f == "assessment_book") { md <- sub("given in the section below", "given in the tab Through the text", md, fixed = TRUE) }
   if (f == "assessment_book") { stopifnot(grepl("(dark green shape)", md, fixed = TRUE), grepl("(yellow shape)", md, fixed = TRUE), grepl("Red shape", md, fixed = TRUE))
-    md <- sub("(dark green shape)", "(blue shape)", md, fixed = TRUE); md <- sub("(yellow shape)", "(orange shape)", md, fixed = TRUE); md <- sub("Red shape", "Green shape", md, fixed = TRUE) }
+    md <- sub("(dark green shape)", "(blue)", md, fixed = TRUE); md <- sub("(yellow shape)", "(orange)", md, fixed = TRUE); md <- sub("Red shape", "Green", md, fixed = TRUE) }
   if (f == "assessment_rolling") { old <- "light thin green line denoted the complete lack of the signal, while dark thick line shows varying degrees of the signal"; stopifnot(grepl(old, md, fixed = TRUE))
     md <- sub(old, "a flat line denotes the complete lack of the signal, while the filled area shows varying degrees of the signal", md, fixed = TRUE) }
   if (f %in% c("assessment_rolling", "assessment_rolling_ent")) md <- sub("The graph below", "The graph above", md, fixed = TRUE)
