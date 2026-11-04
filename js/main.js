@@ -189,7 +189,7 @@ function drawHeaderControls() {
   const d = $('#hdr-table'); d.hidden = !H.length
   if (H.length) { const nText = V.headerRows.filter(r => r.header !== 'header text not available').length
     d.querySelector('summary').textContent = `Headers in this book (${H.length}; with text ${nText})`
-    renderTable($('#tbl-headers'), V.headerRows, ['level', 'header', 'pos', 'Confirmed'], { rtl: ['header'] }) }
+    renderTable($('#tbl-headers'), V.headerRows, ['level', 'header', 'pos', 'Confirmed'], { rtl: ['header'], quick: V.headerLevels.length > 1 ? V.headerLevels.map(l => ({ label: `H${l}`, test: r => r.level === `H${l}` })) : [] }) }
 }
 
 async function drawTab(id) {
