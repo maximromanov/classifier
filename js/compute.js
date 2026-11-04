@@ -132,4 +132,26 @@ export const authorBooksTable = (P, authorURI) => P.booksClassified.filter(b => 
   .map((b, i) => ({ ...b, i })).sort((a, b) => cmpC(a.bookURI, b.bookURI) || a.i - b.i).map(({ bookURI, comparables, index }) => ({ bookURI, comparables, index }))
 
 // headers (headerLocations, 514-520, all levels): position, level, milestone = as.integer(pos / 300)
+// ---- author views without an R counterpart ------------------------------------------------------------------------------
+// all books of an author: whole-text score per type (0.1, the classifier's "nothing found", counted as 0, as in radarBook),
+// columns grouped by top type in the order of the author's ranked types, within a group by score
+export function authorBooksMatrix(P, authorURI, radar) {
+  const classOf = new Map(P.L.map(l => [l.classLabel, l.class]))
+  const ranked = (radar ? [...radar.rows].sort((a, b) => b.final - a.final || cmpC(a.axis, b.axis)).map(r => r.type) : P.L.filter(l => l.class !== 'undefined').map(l => l.classLabel))
+  const types = ranked.map(t => ({ type: t, class: classOf.get(t) })), rank = new Map(ranked.map((t, i) => [t, i]))
+  const top = new Map(); for (const b of authorBooksTable(P, authorURI)) { if (!top.has(b.bookURI)) top.set(b.bookURI, []); top.get(b.bookURI).push(b) }
+  const books = (P.authorBooks.get(authorURI) ?? []).filter(u => P.main.has(u)).map(u => { const r = P.main.get(u), t = top.get(u) ?? []
+    const scores = Object.fromEntries(types.map(x => { const v = Number(r[x.class]); return [x.class, v === 0.1 ? 0 : v] }))
+    return { bookURI: u, top: t.map(b => b.comparables), topScore: t[0]?.index ?? 0, scores, rank: Math.min(...t.map(b => rank.get(b.comparables) ?? ranked.length), ranked.length) } })
+  books.sort((a, b) => a.rank - b.rank || b.topScore - a.topScore || cmpC(a.bookURI, b.bookURI))
+  return { types, books }
+}
+// books per top type; a tied book counts under each of its top types
+export function authorTopTypes(P, authorURI) {
+  const rows = authorBooksTable(P, authorURI), n = new Map()
+  for (const b of rows) n.set(b.comparables, (n.get(b.comparables) ?? 0) + 1)
+  const nBooks = new Set(rows.map(b => b.bookURI)).size
+  return { rows: [...n.entries()].map(([type, books]) => ({ type, books })).sort((a, b) => b.books - a.books || cmpC(a.type, b.type)), nBooks, tied: rows.length - nBooks }
+}
+
 export const headersTable = rows => rows.map(r => ({ level: Number(r.level), pos: Number(r.pos), milestone: Math.trunc(Number(r.pos) / 300) }))

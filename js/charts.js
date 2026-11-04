@@ -1,6 +1,6 @@
 // Book Classifier charts, drawn from the views of compute.js with the shared chart kit (chartkit.js): style, in-chart
 // captions, exports.
-import { plot, styleOf, narrow, STYLES, GRID, AXIS, MUTED } from './chartkit.js'
+import { plot, styleOf, narrow, typeBars, shortType, STYLES, GRID, AXIS, MUTED } from './chartkit.js'
 
 // ---- radars ------------------------------------------------------------------------------------------------------
 const ring = (theta, r, a) => ({ type: 'scatterpolar', r: theta.map(() => r), theta, fill: 'toself', fillcolor: `rgba(200,200,200,${a})`, line: { color: 'rgba(0,0,0,0)' }, mode: 'lines', hoverinfo: 'skip', showlegend: false })
@@ -21,6 +21,32 @@ export async function radarAuthorChart(el, view, { caption, filename }) {
   if (view.max > 0.8) traces.push(ring(theta, 0.8, 0.2)); if (view.max > 0.6) traces.push(ring(theta, 0.6, 0.4)); if (view.max > 0.4) traces.push(ring(theta, 0.4, 0.6))
   traces.push(layer(theta, view.rows.map(r => r.final), 'complete', STYLES[0]))
   await plot(el, traces, polarLayout([-0.1, view.max], false), caption, filename)
+}
+
+// ---- bars: the same grouped bars as NgramReader's Together mode ----------------------------------------------------------
+const num = v => (v === null || v === undefined ? 'n/a' : v.toFixed(3))
+export async function bookBarsChart(el, view, { caption, filename }) {
+  const layers = [['complete', 'Complete Text Assessment', 0], ...(view.hasRolling ? [['rolling', 'Rolling Assessment', 1]] : []), ['period', 'Typology within 100 lunar years', 2]]
+  const sum = r => layers.reduce((a, [k]) => a + (r[k] ?? 0), 0), rows = [...view.rows].sort((a, b) => sum(b) - sum(a) || (a.type < b.type ? -1 : 1))      // combined value across the layers, as in NgramReader
+  await typeBars(el, { types: rows.map(r => r.type), scale: 'score', xTitle: 'score (complete text, rolling windows); share of books (period)', caption, filename,
+    series: layers.map(([k, name, index]) => ({ name, index, values: rows.map(r => r[k]), hover: rows.map(r => `${name}: ${num(r[k])}`) })) })
+}
+export async function rankedTypesChart(el, view, { caption, filename }) {
+  const rows = [...view.rows].sort((a, b) => b.final - a.final || (a.type < b.type ? -1 : 1))
+  await typeBars(el, { types: rows.map(r => r.type), scale: 'score', xTitle: 'mean rolling score', caption, filename,
+    series: [{ name: 'score', index: 0, values: rows.map(r => r.final), text: rows.map(r => r.final.toFixed(2)), hover: rows.map(r => `mean rolling score ${num(r.final)}`) }] })
+}
+export async function topTypesChart(el, top, { caption, filename }) {
+  await typeBars(el, { types: top.rows.map(r => r.type), scale: 'count', xTitle: 'books', caption, filename,
+    series: [{ name: 'books', index: 0, values: top.rows.map(r => r.books), text: top.rows.map(r => r.books.toLocaleString('en')), hover: top.rows.map(r => `${r.books.toLocaleString('en')} book${r.books === 1 ? '' : 's'}`) }] })
+}
+// all books at a glance: one column per book, one row per type; darker = higher score
+export async function allBooksChart(el, m, { caption, filename }) {
+  const y = m.types.map(t => (narrow() ? shortType(t.type) : t.type)), st = STYLES[0]
+  await plot(el, [{ type: 'heatmap', x: m.books.map((_, i) => i), y, z: m.types.map(t => m.books.map(b => b.scores[t.class])), text: m.types.map(() => m.books.map(b => b.label)), zmin: 0, zmax: 1, xgap: m.books.length > 300 ? 0 : 1, ygap: 1,
+    colorscale: [[0, '#ffffff'], [0.25, `rgba(${st.rgb},0.3)`], [1, '#123c63']], colorbar: { thickness: 10, len: 0.8, outlinewidth: 0, title: { text: 'score', font: { size: 12 } }, tickfont: { size: 11 } }, hovertemplate: '%{text}<br>%{y}: %{z:.3f}<extra></extra>' }],
+  { margin: { l: narrow() ? 112 : 240, r: 16, b: 46 }, showlegend: false, hovermode: 'closest', plotHeight: 340, xaxis: { showticklabels: false, showgrid: false, zeroline: false, ticks: '', fixedrange: true, title: { text: `${m.books.length.toLocaleString('en')} book${m.books.length === 1 ? '' : 's'}, grouped by top type`, font: { size: 12 } } },
+    yaxis: { type: 'category', autorange: 'reversed', tickfont: { size: narrow() ? 11 : 12 }, showgrid: false, fixedrange: true } }, caption, filename)
 }
 
 // ---- through the text: rolling type scores and rolling entropy on one x axis ------------------------------------------

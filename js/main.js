@@ -2,8 +2,8 @@
 // (?author=<authorURI>), each with tabs. The active tab and header choices are in the hash (see share.js).
 import { APP, CITATION, SHOW_UNCONFIRMED_HEADERS, RELEASES, DEFAULT_RELEASE, dataBase, dataCommit, ngramreaderURL } from './config.js'
 import { loadStatic, readByKey } from './data.js'
-import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, headersTable, authorOfURI, TYPES } from './compute.js'
-import { radarBookChart, radarAuthorChart, rollingChart, entropyLineChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
+import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, authorBooksMatrix, authorTopTypes, headersTable, authorOfURI, TYPES } from './compute.js'
+import { radarBookChart, radarAuthorChart, bookBarsChart, rankedTypesChart, allBooksChart, topTypesChart, rollingChart, entropyLineChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
 import { redraw, setShapes, exportBar } from './chartkit.js'
 import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
@@ -65,12 +65,12 @@ document.addEventListener('click', e => {
   e.preventDefault(); navigate(a.getAttribute('href')); UI.autoFold()
 })
 addEventListener('popstate', async () => { S.wanted = await readHash(); route() })
-const readHash = async () => { const o = await unpackState(location.hash); return { tab: o?.t, levels: o?.h } }
+const readHash = async () => { const o = await unpackState(location.hash); return { tab: o?.t, levels: o?.h, bookChart: o?.v, authorChart: o?.a } }
 async function updateURL() {
   const V = S.view; if (!V) return
   const defaultLevels = V.headerLevels?.includes(1) ? '1' : ''
   const h = V.levelsOn ? [...V.levelsOn].sort().join('') : defaultLevels
-  const st = { ...(T && T.active !== 'overview' && T.active !== 'a-overview' ? { t: T.active } : {}), ...(V.kind === 'book' && h !== defaultLevels ? { h } : {}) }
+  const st = { ...(T && T.active !== 'overview' && T.active !== 'a-overview' ? { t: T.active } : {}), ...(V.kind === 'book' && h !== defaultLevels ? { h } : {}), ...(V.kind === 'book' && V.bookChart !== 'bars' ? { v: V.bookChart } : {}), ...(V.authorChart !== 'ranked' ? { a: V.authorChart } : {}) }
   history.replaceState(null, '', location.pathname + location.search + (Object.keys(st).length ? await packState(st) : ''))
 }
 
@@ -97,6 +97,7 @@ const BOOK_TABS = [{ id: 'overview', label: 'Overview' }, { id: 'text', label: '
 const AUTHOR_TABS = [{ id: 'a-overview', label: 'Overview' }, { id: 'a-books', label: 'Books' }]
 let T = null
 function setTabs(list, wanted, enabled) {
+  paintSwitches()
   T = tabs($('#tabs'), list, async id => { await updateURL(); await drawTab(id); activeCharts().forEach(el => redraw(el)) })
   T.enable(enabled); T.set(wanted && enabled[wanted] !== false ? wanted : list[0].id, true)
 }
@@ -125,7 +126,7 @@ async function renderBook(uri) {
   document.title = `${bookTitleText(uri).replace(/\*/g, '')} — ${APP.name}`
   const link = P.linkOf(uri), top = P.booksClassified.filter(b => b.bookURI === uri).map(b => b.comparables).join('; ')
   $('#what').innerHTML = `<h1>${bookTitleHTML(uri)}</h1><div class="line2">${l?.titleAR || l?.authorAR ? `<span>${ar(l?.titleAR)}${l?.titleAR && l?.authorAR ? ' · ' : ''}${ar(l?.authorAR)}</span>` : ''}<a href="${authorHref(author)}" data-nav>${esc(authorNameText(author))}</a><code>${esc(uri)}</code><span>Top type: <b>${esc(top)}</b></span>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">Text in release 2023.1.8 ↗</a>` : ''}</div>${l?.ambiguous === '1' && l.ambiguousNote ? `<div class="note">Label flagged as uncertain: ${esc(l.ambiguousNote)}</div>` : ''}`
-  S.view = { kind: 'book', bookURI: uri, authorURI: author, stem: `Classifier_${uri}`, files: {} }
+  S.view = { kind: 'book', bookURI: uri, authorURI: author, stem: `Classifier_${uri}`, files: {}, ...chartChoice() }
   const rows = await bookRows(id); S.timing.data = performance.now() - t0
   const V = S.view; Object.assign(V, { rollingRows: rows.rolling, entropyRows: rows.entropy, headers: rows.headers })
   // all view data first (the downloads hold every view); charts are drawn when their tab opens
@@ -157,7 +158,24 @@ function authorData(author) {
   V.authorBooks = authorBooksTable(P, author)
   V.authorRows = V.authorBooks.map(r => ({ ...r, Book: bookTitleText(r.bookURI), Arabic: bookLabel(r.bookURI)?.titleAR || null }))
   fileEntry('author_books', V.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'])
+  V.authorMatrix = authorBooksMatrix(P, author, V.authorRadar); V.authorMatrix.books.forEach(b => { b.label = bookTitleText(b.bookURI).replace(/\*/g, '') })
+  V.authorTop = authorTopTypes(P, author)
+  fileEntry('author_all_books', V.authorMatrix.books.map(b => ({ bookURI: b.bookURI, Book: b.label, topType: b.top.join('; '), ...b.scores })), ['bookURI', 'Book', 'topType', ...V.authorMatrix.types.map(t => t.class)])
+  fileEntry('author_top_types', V.authorTop.rows, ['type', 'books'])
 }
+// chart choices come from the link; a new profile starts from the defaults
+const chartChoice = () => ({ bookChart: S.wanted?.bookChart === 'radar' ? 'radar' : 'bars', authorChart: ['books', 'radar'].includes(S.wanted?.authorChart) ? S.wanted.authorChart : 'ranked' })
+async function drawAuthorChart(viewSel, radarSel) {
+  const V = S.view, author = V.authorURI, radar = V.authorChart === 'radar', books = V.authorChart === 'books'; $(radarSel).hidden = !radar; $(viewSel).hidden = radar
+  const who = `${authorNameText(author)} · ${author}`
+  if (radar) return radarAuthorChart($(radarSel), V.authorRadar, { filename: `${author}_RADAR`, caption: authorCaption(author) })
+  if (books) return allBooksChart($(viewSel), V.authorMatrix, { filename: `${author}_ALL_BOOKS`, caption: { title: 'All books at a glance', subtitle: [who], footer: footer(),
+    note: `One column per book, grouped by top type; darker means a higher whole-text score (0–1). Types in the order of the author’s mean rolling scores.${V.authorMatrix.books.some(b => b.top.includes('[U] undefined') || b.top.includes('----')) ? ' Empty columns, at the end: books without a type score.' : ''}` } })
+  return rankedTypesChart($(viewSel), V.authorRadar, { filename: `${author}_RANKED_TYPES`, caption: { ...authorCaption(author), note: `${authorCaption(author).note} Types sorted by score.` } })
+}
+const paintSwitches = () => { const V = S.view; if (!V) return
+  document.querySelectorAll('.sw-bchart button').forEach(b => b.classList.toggle('on', b.dataset.v === V.bookChart))
+  document.querySelectorAll('.sw-achart button').forEach(b => b.classList.toggle('on', b.dataset.v === V.authorChart)) }
 const authorCaption = author => ({ title: 'Author typology: mean rolling score per book type', subtitle: [`${authorNameText(author)} · ${author}`], note: 'Summary of the rolling assessments of all the author’s books in the OpenITI corpus.', footer: footer() })
 const authorBooksTableDraw = host => renderTable(host, S.view.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
 
@@ -197,8 +215,10 @@ async function drawTab(id) {
   S.dirty.delete(id); const V = S.view, P = S.P, uri = V.bookURI, author = V.authorURI
   if (id === 'overview') {
     $('#note-radar').innerHTML = await text('assessment_book')
-    await radarBookChart($('#chart-radar'), V.radar, { filename: `${uri}_RADAR`, caption: { title: 'Book typology: complete text, rolling windows and the period',
-      subtitle: [bookLine(uri)], note: `Blue: complete text; ${V.radar.hasRolling ? 'orange: mean of the rolling windows; ' : ''}green: types of the books within ±50 lunar years.`, footer: footer() } })
+    const radar = V.bookChart === 'radar'; $('#chart-radar').hidden = !radar; $('#chart-bars').hidden = radar
+    const opts = { filename: `${uri}_${radar ? 'RADAR' : 'BARS'}`, caption: { title: 'Book typology: complete text, rolling windows and the period',
+      subtitle: [bookLine(uri)], note: radar ? `Blue: complete text; ${V.radar.hasRolling ? 'orange: mean of the rolling windows; ' : ''}green: types of the books within ±50 lunar years.` : `Blue, solid: complete text; ${V.radar.hasRolling ? 'orange, hatched: mean of the rolling windows; ' : ''}green, light: share of each top type among the books within ±50 lunar years. Types ordered by their combined value.`, footer: footer() } }
+    await (radar ? radarBookChart($('#chart-radar'), V.radar, opts) : bookBarsChart($('#chart-bars'), V.radar, opts))
     const nd = $('#nodata-radar'); nd.hidden = V.radar.hasRolling; nd.textContent = `Rolling Assessment: ${NO_DATA}`
     const rows = [...V.radar.rows].sort((a, b) => b.complete - a.complete)
     renderTable($('#tbl-top'), rows, ['type', 'complete', 'rolling', 'period'])
@@ -222,13 +242,18 @@ async function drawTab(id) {
     renderTable($('#tbl-tfidf'), V.tfidfRows, ['rank', 'Book', 'Arabic', 'bookURI', 'similarity'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
   } else if (id === 'author') {
     $('#note-author').innerHTML = await text('assessment_author')
-    await radarAuthorChart($('#chart-author'), V.authorRadar, { filename: `${author}_RADAR`, caption: authorCaption(author) })
+    await drawAuthorChart('#chart-author-v', '#chart-author')
     $('#author-books-title').textContent = `Books of ${authorNameText(author)} (${V.authorRows.length})`
     authorBooksTableDraw($('#tbl-author'))
   } else if (id === 'a-overview') {
     $('#note-aauthor').innerHTML = await text('assessment_author')
-    if (V.authorRadar) await radarAuthorChart($('#chart-aradar'), V.authorRadar, { filename: `${author}_RADAR`, caption: authorCaption(author) })
-  } else if (id === 'a-books') { $('#abooks-title').textContent = `Books of ${authorNameText(author)} (${V.authorRows.length})`; authorBooksTableDraw($('#tbl-abooks')) }
+    if (V.authorRadar) await drawAuthorChart('#chart-aview', '#chart-aradar')
+  } else if (id === 'a-books') {
+    const t = V.authorTop
+    await topTypesChart($('#chart-atop'), t, { filename: `${author}_TOP_TYPES`, caption: { title: 'Books by top type', subtitle: [`${authorNameText(author)} · ${author}`], footer: footer(),
+      note: `Each book counted under the type with its highest whole-text score: ${t.nBooks.toLocaleString('en')} book${t.nBooks === 1 ? '' : 's'}.${t.tied ? ` A tied book counts under both types (${t.tied.toLocaleString('en')}).` : ''}${t.rows.some(r => r.type === '----') ? ' ----: no type scores 0.1 or more.' : ''}` } })
+    $('#abooks-title').textContent = `Books of ${authorNameText(author)} (${V.authorRows.length})`; authorBooksTableDraw($('#tbl-abooks'))
+  }
 }
 
 async function renderAuthor(author) {
@@ -236,7 +261,7 @@ async function renderAuthor(author) {
   S.timing = { author, start: t0 }
   document.title = `${authorNameText(author)} — ${APP.name}`
   $('#what').innerHTML = `<h1>${esc(authorNameText(author))}</h1><div class="line2">${ar(l?.authorAR)}<code>${esc(author)}</code><span>Death date: ${ah} AH${l?.deathCE ? ` / ${esc(l.deathCE)} CE` : ''}</span></div>`
-  S.view = { kind: 'author', authorURI: author, stem: `Classifier_${author}`, files: {} }
+  S.view = { kind: 'author', authorURI: author, stem: `Classifier_${author}`, files: {}, ...chartChoice() }
   authorData(author)
   setTabs(AUTHOR_TABS, S.wanted?.tab, { 'a-overview': !!S.view.authorRadar, 'a-books': S.view.authorRows.length > 0 })
   S.dirty = new Set(AUTHOR_TABS.map(t => t.id))
@@ -244,18 +269,20 @@ async function renderAuthor(author) {
   S.timing.done = performance.now() - t0
 }
 
-const activeCharts = () => [...document.querySelectorAll(`[data-pane="${T?.active}"] .js-plotly-plot`)]
+const activeCharts = () => [...document.querySelectorAll(`[data-pane="${T?.active}"] .js-plotly-plot:not([hidden])`)]
 let resizeTimer
 function onResize() { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => activeCharts().forEach(el => redraw(el)), 180) }
 
 const DESCR = {
-  radar: 'the radar: per axis (type), complete = whole-text score (0.1 counted as 0; undefined = 1 when all ten scores are equal), rolling = mean over the rolling windows, period = share of each top type among books with a death decade within +-50 years.',
+  radar: 'the bars and the radar: per type, complete = whole-text score (0.1 counted as 0; undefined = 1 when all ten scores are equal), rolling = mean over the rolling windows, period = share of each top type among books with a death decade within +-50 years.',
   rolling: 'the rolling type scores of every window (start = token offset of the window; scores 0-1); the plot shows a reduced number of points for long books.',
   rolling_entropy: 'the rolling unigram and bigram entropy of every window.',
   entropy_types: 'whole-text entropy (2up) of every book by its top type; selectedType = the type of this book; thisBook = 1 for this book.',
   entropy_type_time: 'whole-text entropy (2up) of the books of this book\'s type by century of death (AH/CE).',
   tfidf: 'the 250 nearest books by TF-IDF cosine similarity (unigrams and bigrams).',
   author_radar: 'the author\'s mean rolling score per type over all of the author\'s books.',
+  author_all_books: 'one row per book of the author: top type(s) and the whole-text score per type (0.1 counted as 0), in the column order of the All books chart.',
+  author_top_types: 'books per top type (a tied book counts under each of its top types).',
   author_books: 'the author\'s books with their top type (comparables; ties give two rows) and its score (index).',
   headers: 'section headers H1 and H2 of the book as stored for the rolling assessment (a window-sampled subset of the headers): level, text, position (token offset), Confirmed = yes for annotated versions (.completed, .mARkdown), status of the version.',
 }
@@ -305,11 +332,17 @@ async function init() {
   $('#copy-link').onclick = async () => { await updateURL(); copyText(location.href, 'Link copied') }
   $('#download-all').onclick = downloadAll
   $('#dl-tfidf').onclick = () => tsv('tfidf'); $('#dl-author').onclick = () => tsv('author_books'); $('#dl-abooks').onclick = () => tsv('author_books'); $('#dl-headers').onclick = () => tsv('headers')
-  exportBar($('#x-radar'), () => [$('#chart-radar')], () => tsv('radar'))
+  const shownOf = (...ids) => () => [ids.map(i => $(i)).find(el => !el.hidden)]
+  for (const [cls, key, panes] of [['.sw-bchart', 'bookChart', ['overview']], ['.sw-achart', 'authorChart', ['author', 'a-overview']]]) document.querySelectorAll(cls).forEach(box => box.onclick = async e => {
+    const b = e.target.closest('button'); if (!b || !S.view) return
+    S.view[key] = b.dataset.v; paintSwitches(); panes.forEach(p => S.dirty.add(p)); await updateURL(); await drawTab(T.active) })
+  const authorTSV = () => tsv(S.view.authorChart === 'books' ? 'author_all_books' : 'author_radar')
+  exportBar($('#x-radar'), shownOf('#chart-bars', '#chart-radar'), () => tsv('radar'))
   exportBar($('#x-text'), textCharts, () => { tsv('rolling'); tsv('rolling_entropy') })
   exportBar($('#x-entropy'), () => ['#chart-entuni', '#chart-entbi', '#chart-timeuni', '#chart-timebi'].map(s => $(s)), () => { for (const n of ['entropy_types_unigrams', 'entropy_types_bigrams', 'entropy_type_time_unigrams', 'entropy_type_time_bigrams']) tsv(n) })
-  exportBar($('#x-author'), () => [$('#chart-author')], () => tsv('author_radar'))
-  exportBar($('#x-aradar'), () => [$('#chart-aradar')], () => tsv('author_radar'))
+  exportBar($('#x-author'), shownOf('#chart-author-v', '#chart-author'), authorTSV)
+  exportBar($('#x-aradar'), shownOf('#chart-aview', '#chart-aradar'), authorTSV)
+  exportBar($('#x-atop'), () => [$('#chart-atop')], () => tsv('author_top_types'))
   new ResizeObserver(onResize).observe($('#content'))
   fontControls(() => activeCharts().forEach(el => redraw(el)))
   const [intro, comparables] = await Promise.all([text('intro_short'), text('comparables')])
