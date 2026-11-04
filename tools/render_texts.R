@@ -12,6 +12,7 @@ for (f in c("intro_short", "assessment_book", "assessment_rolling", "assessment_
   md <- paste(readLines(paste0(src, f, ".md"), encoding = "UTF-8", warn = FALSE), collapse = "\n")
   if (f == "tfidf_comps") { stopifnot(grepl("top 1,500 matches", md, fixed = TRUE), grepl("`distance`", md, fixed = TRUE))
     md <- sub("top 1,500 matches", "top 250 matches", md, fixed = TRUE); md <- sub("`distance`", "`similarity`", md, fixed = TRUE) }
+  if (f == "assessment_book") { md <- sub("given in the section below", "given in the tab Through the text", md, fixed = TRUE) }
   if (f == "assessment_book") { stopifnot(grepl("(dark green shape)", md, fixed = TRUE), grepl("(yellow shape)", md, fixed = TRUE), grepl("Red shape", md, fixed = TRUE))
     md <- sub("(dark green shape)", "(blue shape)", md, fixed = TRUE); md <- sub("(yellow shape)", "(orange shape)", md, fixed = TRUE); md <- sub("Red shape", "Green shape", md, fixed = TRUE) }
   if (f == "assessment_rolling") { old <- "light thin green line denoted the complete lack of the signal, while dark thick line shows varying degrees of the signal"; stopifnot(grepl(old, md, fixed = TRUE))

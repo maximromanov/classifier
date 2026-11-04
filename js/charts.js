@@ -6,7 +6,7 @@ import { plot, styleOf, narrow, STYLES, GRID, AXIS, MUTED } from './chartkit.js'
 const ring = (theta, r, a) => ({ type: 'scatterpolar', r: theta.map(() => r), theta, fill: 'toself', fillcolor: `rgba(200,200,200,${a})`, line: { color: 'rgba(0,0,0,0)' }, mode: 'lines', hoverinfo: 'skip', showlegend: false })
 const layer = (theta, r, name, st) => ({ type: 'scatterpolar', r, theta, name, fill: 'toself', fillcolor: `rgba(${st.rgb},0.3)`, line: { color: st.color, dash: st.dash, width: 2 }, marker: { color: st.color, size: 6 }, mode: 'lines+markers', hovertemplate: `%{theta}: %{r:.4f}<extra>${name}</extra>` })
 const axisName = c => (narrow() ? c.replace(/ /g, '<br>').replace(/-/g, '-<br>') : c)
-const polarLayout = (range, legend) => ({ margin: { b: 30, l: narrow() ? 75 : 40, r: narrow() ? 75 : 40 }, showlegend: legend, legendRoom: legend, ...(legend ? { legend: { orientation: 'h', x: 0, y: 1.02, yanchor: 'bottom', font: { size: 13 } } } : {}),
+const polarLayout = (range, legend) => ({ margin: { b: 30, l: narrow() ? 75 : 40, r: narrow() ? 75 : 40 }, showlegend: legend, legendRoom: legend ? (narrow() ? 3 : 1) : 0, ...(legend ? { legend: { orientation: 'h', x: 0, y: 1.02, yanchor: 'bottom', font: { size: 13 } } } : {}),
   polar: { domain: { x: [0, 1], y: [0, 0.96] }, radialaxis: { visible: true, range, tickfont: { size: 11 } }, angularaxis: { tickfont: { size: narrow() ? 9 : 12 } } } })
 
 export async function radarBookChart(el, view, { caption, filename }) {
