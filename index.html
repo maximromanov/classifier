@@ -5,51 +5,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpenITI Book Classifier</title>
 <meta name="description" content="Book typology of the works in the OpenITI corpus of premodern Arabic texts (release 2023.1.8): complete-text and rolling assessments, entropy, TF-IDF neighbours, author profiles. In the browser.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpolygon points=%228,1 15,6 12,15 4,15 1,6%22 stroke=%22%23006400%22 stroke-width=%221.5%22 fill=%22none%22/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpolygon points=%228,1 15,6 12,15 4,15 1,6%22 stroke=%22%231f5f99%22 stroke-width=%221.5%22 fill=%22none%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Noto+Naskh+Arabic:wght@400;600&display=swap">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<header>
-  <h1><a href="./" class="home">OpenITI Book Classifier</a></h1>
-  <p class="sub">ADHFAIS APP{ENDIX} 2: M10 Book Classification, 2025 (OpenITI, Release ver. 2023.1.8) · companion of the <a href="https://maximromanov.github.io/ngramreader/">OpenITI NgramReader</a></p>
-  <div class="searchbox">
-    <input type="search" id="q" autocomplete="off" disabled placeholder="Loading …" aria-label="Search books and authors">
-    <div id="results-list" class="results-list" hidden></div>
-  </div>
-  <div id="messages" role="alert"></div>
-  <div id="status" role="status" hidden></div>
+<header class="site">
+  <div class="brand"><a class="name" href="./" data-nav>OpenITI Book Classifier</a><span class="sub">ADHFAIS App 2 · 10 types · OpenITI 2023.1.8</span></div>
+  <nav aria-label="Site"><a id="link-other" href="https://maximromanov.github.io/ngramreader/" target="_blank" rel="noopener">NgramReader ↗</a><a href="#" id="open-help">Help</a></nav>
 </header>
 
-<main>
-<section id="start">
-  <div id="intro-text" class="intro-text"></div>
-  <h2>How to use</h2>
-  <ul>
-    <li>Type a few letters of a title, an author's name (in transliteration or Arabic) or an OpenITI URI into the search box; matching ignores case and diacritics (“tabari tarikh” finds <i>Taʾrīḫ al-rusul wa-l-mulūk</i> of al-Ṭabarī). Choose a book or an author.</li>
-    <li>A <b>book profile</b> shows the book's typology as a whole (radar) and along the text (rolling assessment), the entropy of its vocabulary along the text and against all books, its nearest books by vocabulary (TF-IDF), and the profile of its author. Section headers can be shown on the rolling plots.</li>
-    <li>An <b>author profile</b> shows the author's typology over all their books and the list of the books.</li>
-    <li>Profiles have their own addresses, <code>?book=&lt;bookURI&gt;</code> and <code>?author=&lt;authorURI&gt;</code>; the NgramReader links to them from its tables of books and authors.</li>
-    <li>Every plot and table can be downloaded: the data behind it as TSV (or all data of a profile as a zip), the plots as SVG or PNG (buttons above each plot).</li>
-  </ul>
-  <h2>Book titles and author names</h2>
-  <p>Titles and names are shown in transliteration with the Arabic beside the OpenITI URI. <b>Book titles and author names are working labels and may contain errors; the URI is authoritative.</b> The labels were generated with a language model; a raised <sup>?</sup> marks a label flagged as uncertain. Without a label the URI is shown.</p>
-</section>
-<div id="profile" hidden></div>
+<div class="shell">
+<aside id="panel" aria-label="Find a book or author">
+  <div class="panel-head"><h2>Find</h2><button type="button" id="hide-panel">« Hide panel</button></div>
+  <label for="q" class="note">Title, author, Arabic or URI</label>
+  <input type="search" id="q" autocomplete="off" disabled placeholder="Loading …">
+  <div id="results-list"></div>
+</aside>
+<div id="strip"><button type="button" id="show-panel" aria-label="Show panel" title="Show panel">»<span>Find</span></button></div>
 
-<details class="essay">
-  <summary>Modeling types: the “comparables” approach (essay)</summary>
-  <div id="comparables"></div>
-</details>
-</main>
+<div id="content">
+  <div id="topbar">
+    <div id="what"><span class="note">No book or author chosen.</span></div>
+    <div class="actions"><button type="button" id="cite" disabled>Cite these results</button><button type="button" id="copy-link" disabled>Copy link</button><button type="button" id="download-all" disabled>Download all (zip)</button></div>
+  </div>
+  <div id="tabs" role="tablist" aria-label="Views"></div>
+  <div id="messages" role="alert"></div>
+  <div id="status" role="status" hidden></div>
+  <div id="empty"><div id="intro-text"></div><p>Search for a book or an author in the panel. A profile has one tab per view; see <a href="#" data-help>Help</a>.</p></div>
+
+  <section data-pane="overview" hidden>
+    <div class="toolbar"><span class="grow"></span><span class="xbar" id="x-radar"></span></div>
+    <div id="note-radar" class="text"></div>
+    <div class="chart fill" id="chart-radar"></div>
+    <p class="nodata" id="nodata-radar" hidden></p>
+    <h2>Top types</h2><div id="tbl-top"></div>
+  </section>
+  <section data-pane="text" hidden>
+    <div class="toolbar"><span id="hdr-ctl"></span><span class="grow"></span><span class="xbar" id="x-text"></span></div>
+    <p class="note" id="hdr-note" hidden>Dashed: headers from a not yet annotated version; may be unreliable</p>
+    <div class="chart" id="chart-text"></div>
+    <details class="headers-table" id="hdr-table" hidden><summary></summary><div id="tbl-headers"></div><p><button type="button" id="dl-headers">Download headers (TSV)</button></p></details>
+    <div id="note-rolling" class="text"></div><div id="note-entropy" class="text"></div>
+  </section>
+  <section data-pane="entropy" hidden>
+    <div class="toolbar"><span class="grow"></span><span class="xbar" id="x-entropy"></span></div>
+    <div class="chart" id="chart-entuni"></div><div class="chart" id="chart-entbi"></div><div class="chart" id="chart-timeuni"></div><div class="chart" id="chart-timebi"></div>
+  </section>
+  <section data-pane="similar" hidden>
+    <h2>TF-IDF Neighbors: Similar Books</h2><div id="note-tfidf" class="text"></div>
+    <div id="tbl-tfidf"></div><p><button type="button" id="dl-tfidf">Download (TSV)</button></p>
+  </section>
+  <section data-pane="author" hidden>
+    <div class="toolbar"><span class="grow"></span><span class="xbar" id="x-author"></span></div>
+    <div id="note-author" class="text"></div>
+    <div class="chart fill" id="chart-author"></div>
+    <h3 id="author-books-title"></h3><div id="tbl-author"></div><p><button type="button" id="dl-author">Download the author’s books (TSV)</button></p>
+  </section>
+  <section data-pane="a-overview" hidden>
+    <div class="toolbar"><span class="grow"></span><span class="xbar" id="x-aradar"></span></div>
+    <div id="note-aauthor" class="text"></div>
+    <div class="chart fill" id="chart-aradar"></div>
+  </section>
+  <section data-pane="a-books" hidden>
+    <h2 id="abooks-title"></h2><div id="tbl-abooks"></div><p><button type="button" id="dl-abooks">Download (TSV)</button></p>
+  </section>
+</div>
+</div>
 
 <footer>
-  <p><b>Citation:</b> Romanov, Maxim. (2025). <i>ADHFAIS App{endix} 2: T10 Book Classification (based on OpenITI, Release ver. 2023.1.8)</i> (Version 1) [Software]. Zenodo. <a href="https://doi.org/10.5281/zenodo.15663089">https://doi.org/10.5281/zenodo.15663089</a></p>
+  <p id="citation-block"></p>
   <p><b>Data:</b> derived from OpenITI release 2023.1.8 (<a href="https://doi.org/10.5281/zenodo.10007820">https://doi.org/10.5281/zenodo.10007820</a>), CC BY-NC-SA 4.0; code under the MIT License (<a href="https://github.com/maximromanov/classifier">github.com/maximromanov/classifier</a>).</p>
   <p class="logos">
     <img src="img/eis1600_SMALL_mix_blue_white.png" alt="EIS1600" height="50"><img src="img/OpenITI_Logo_SQ.png" alt="OpenITI" height="50"><img src="img/ERC_logo_SQ.png" alt="ERC" height="50"><img src="img/KITAB_UHH_DFG_COLORS.png" alt="KITAB" height="50"><img src="img/EN_DFG_COLORS.png" alt="DFG Emmy Noether" height="50"><img src="img/RM_600.png" alt="Maxim Romanov" height="50">
   </p>
   <p id="version" class="version"></p>
 </footer>
+
+<dialog id="help-dialog" aria-label="Help"><button type="button" class="close" data-close aria-label="Close">×</button><h2>About and instructions</h2>
+  <div id="help-intro"></div>
+  <h3>How to use</h3>
+  <ul>
+    <li>Type a few letters of a title, an author's name (in transliteration or Arabic) or an OpenITI URI into the search box; matching ignores case and diacritics (“tabari tarikh” finds <i>Taʾrīḫ al-rusul wa-l-mulūk</i> of al-Ṭabarī). Choose a book or an author.</li>
+    <li>A <b>book profile</b> has five tabs: the book's typology as a whole (radar and top types), its typology and entropy along the text, its entropy against all books, its nearest books by vocabulary (TF-IDF), and its author.</li>
+    <li>An <b>author profile</b> shows the author's typology over all their books and the list of the books.</li>
+    <li>Profiles have their own addresses, <code>?book=&lt;bookURI&gt;</code> and <code>?author=&lt;authorURI&gt;</code>; the NgramReader links to them from its tables of books and authors. The active tab is part of the page address.</li>
+    <li>Every plot and table can be downloaded: the data behind it as TSV (or all data of a profile as a zip), the plots as SVG or PNG, in three sizes.</li>
+    <li>Section headers (H1, H2) can be shown on the plots along the text. Solid lines: headers of annotated versions (<code>.completed</code>, <code>.mARkdown</code>). Dashed lines: headers from a not yet annotated version; they may be unreliable.</li>
+  </ul>
+  <h3>Book titles and author names</h3>
+  <p>Titles and names are shown in transliteration with the Arabic beside the OpenITI URI. <b>Book titles and author names are working labels and may contain errors; the URI is authoritative.</b> The labels were generated with a language model; a raised <sup>?</sup> marks a label flagged as uncertain. Without a label the URI is shown.</p>
+  <details class="essay"><summary>Modeling types: the “comparables” approach (essay)</summary><div id="comparables"></div></details>
+</dialog>
+<dialog id="cite-dialog" aria-label="Cite these results"><button type="button" class="close" data-close aria-label="Close">×</button><h2>Cite these results</h2>
+  <div class="cite-tabs"></div><div class="cite-text"></div><p><button type="button" class="cite-copy primary">Copy citation</button></p>
+</dialog>
+<div id="toast" role="status" hidden></div>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

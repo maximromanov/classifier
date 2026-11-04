@@ -1,16 +1,19 @@
-// OpenITI Book Classifier, static v1 — page controller: start page with search, book profile (?book=<bookURI>),
-// author profile (?author=<authorURI>).
-import { APP, RELEASES, DEFAULT_RELEASE, dataBase } from './config.js'
+// OpenITI Book Classifier — page controller: search panel, book profile (?book=<bookURI>), author profile
+// (?author=<authorURI>), each with tabs. The active tab and header choices are in the hash (see share.js).
+import { APP, CITATION, SHOW_UNCONFIRMED_HEADERS, RELEASES, DEFAULT_RELEASE, dataBase, dataCommit, ngramreaderURL } from './config.js'
 import { loadStatic, readByKey } from './data.js'
 import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, headersTable, authorOfURI, TYPES } from './compute.js'
-import { radarBookChart, radarAuthorChart, rollingChart, entropyLineChart, boxTypesChart, boxTypeTimeChart, headerShapes, loadPlotly } from './charts.js'
+import { radarBookChart, radarAuthorChart, throughTextChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
+import { redraw, setShapes, exportBar } from './chartkit.js'
 import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
+import { panel, tabs, dialogs, citeDialog, copyText } from './ui.js'
+import { packState, unpackState } from './share.js'
 
 const $ = s => document.querySelector(s)
 const NO_DATA = 'No data for this text.'
 const UNCERTAIN = 'Label uncertain; see URI.'
-const S = { release: RELEASES[DEFAULT_RELEASE], appCommit: null, P: null, view: null, timing: null, busy: false, index: null }
+const S = { release: RELEASES[DEFAULT_RELEASE], appCommit: null, P: null, view: null, timing: null, index: null, dirty: new Set() }
 window.__cls = S                                     // exposed for automated tests
 
 // ---- labels (same rendering as the NgramReader) ----------------------------------------------------------------
@@ -20,12 +23,12 @@ const authorLabel = a => S.P.labels.authors.get(a)
 const bookTitleHTML = uri => { const l = bookLabel(uri); return l ? italics(l.label) + (l.ambiguous === '1' ? `<sup class="uncertain" title="${UNCERTAIN}">?</sup>` : '') : esc(uri) }
 const bookTitleText = uri => bookLabel(uri)?.label ?? uri
 const authorNameText = a => authorLabel(a)?.authorName ?? a
-const ar = s => s ? `<span dir="rtl" lang="ar" class="ar">${esc(s)}</span>` : ''
+const ar = s => (s ? `<span dir="rtl" lang="ar" class="ar">${esc(s)}</span>` : '')
 const bookHref = uri => `?book=${encodeURIComponent(uri)}`
 const authorHref = a => `?author=${encodeURIComponent(a)}`
 const bookLink = uri => `<a href="${bookHref(uri)}" data-nav>${bookTitleHTML(uri)}</a>`
+const asCaption = s => s.replace(/\*([^*]+)\*/g, '<i>$1</i>')      // *title* -> italics in a chart caption
 
-// ---- status ----------------------------------------------------------------------------------------------------
 const status = t => { const s = $('#status'); s.hidden = !t; s.textContent = t ?? '' }
 function fail(e) { console.warn(e); $('#messages').innerHTML = `<div class="msg error">${esc(String(e && e.message || e))}</div>` }
 
@@ -44,208 +47,201 @@ function search(q) {
 }
 function showResults() {
   const q = $('#q').value, box = $('#results-list')
-  if (!q.trim()) { box.hidden = true; box.innerHTML = ''; return }
-  const r = search(q)
-  box.hidden = false
+  if (!q.trim()) { box.innerHTML = ''; return }
+  const r = search(q), cur = S.view?.bookURI ?? S.view?.authorURI
   box.innerHTML = r.total ? `
-    ${r.authors.length ? `<h3>Authors (${r.nAuthors.toLocaleString('en')})</h3><ul>${r.authors.map(h => { const l = authorLabel(h.key)
-      return `<li><a href="${authorHref(h.key)}" data-nav>${esc(authorNameText(h.key))}</a> ${ar(l?.authorAR)} <code>${esc(h.key)}</code></li>` }).join('')}</ul>` : ''}
-    ${r.books.length ? `<h3>Books (${r.nBooks.toLocaleString('en')}${r.nBooks > r.books.length ? `, first ${r.books.length} shown` : ''})</h3><ul>${r.books.map(h => { const l = bookLabel(h.key)
-      return `<li>${bookLink(h.key)} ${ar(l?.titleAR)} <code>${esc(h.key)}</code></li>` }).join('')}</ul>` : ''}`
+    ${r.authors.length ? `<h3>Authors (${r.nAuthors.toLocaleString('en')})</h3>${r.authors.map(h => { const l = authorLabel(h.key)
+      return `<a class="hit${h.key === cur ? ' current' : ''}" href="${authorHref(h.key)}" data-nav><span>${esc(authorNameText(h.key))}${l?.deathCE ? ` <span class="note">(d. ${esc(l.deathCE)})</span>` : ''}</span>${ar(l?.authorAR)}<code>${esc(h.key)}</code></a>` }).join('')}` : ''}
+    ${r.books.length ? `<h3>Books (${r.nBooks.toLocaleString('en')}${r.nBooks > r.books.length ? `, first ${r.books.length} shown` : ''})</h3>${r.books.map(h => { const l = bookLabel(h.key)
+      return `<a class="hit${h.key === cur ? ' current' : ''}" href="${bookHref(h.key)}" data-nav><span>${bookTitleHTML(h.key)}</span>${ar(l?.titleAR)}<code>${esc(h.key)}</code></a>` }).join('')}` : ''}`
     : '<p class="note">No book or author matches.</p>'
 }
 
-// ---- navigation ---------------------------------------------------------------------------------------------------
-function navigate(href) { history.pushState(null, '', href); route() }
+// ---- navigation and URL state --------------------------------------------------------------------------------------
+function navigate(href) { history.pushState(null, '', href); S.wanted = {}; route() }
 document.addEventListener('click', e => {
   const a = e.target.closest('a[data-nav]'); if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return
-  e.preventDefault(); $('#results-list').hidden = true; navigate(a.getAttribute('href'))
+  e.preventDefault(); navigate(a.getAttribute('href')); UI.autoFold()
 })
-addEventListener('popstate', () => route())
+addEventListener('popstate', async () => { S.wanted = await readHash(); route() })
+const readHash = async () => { const o = await unpackState(location.hash); return { tab: o?.t, levels: o?.h } }
+async function updateURL() {
+  const V = S.view; if (!V) return
+  const defaultLevels = V.headerLevels?.includes(1) ? '1' : ''
+  const h = V.levelsOn ? [...V.levelsOn].sort().join('') : defaultLevels
+  const st = { ...(T && T.active !== 'overview' && T.active !== 'a-overview' ? { t: T.active } : {}), ...(V.kind === 'book' && h !== defaultLevels ? { h } : {}) }
+  history.replaceState(null, '', location.pathname + location.search + (Object.keys(st).length ? await packState(st) : ''))
+}
 
 async function route() {
-  const p = new URLSearchParams(location.search)
+  const p = new URLSearchParams(location.search), book = p.get('book'), author = p.get('author')
   $('#messages').innerHTML = ''
-  const book = p.get('book'), author = p.get('author')
-  $('#start').hidden = !!(book || author); $('#profile').hidden = !(book || author)
-  if (!book && !author) { document.title = APP.name; S.view = null; return }
+  const on = !!(book || author)
+  $('#empty').hidden = on; for (const id of ['cite', 'copy-link', 'download-all']) $('#' + id).disabled = !on
+  if (!on) { document.title = APP.name; S.view = null; document.querySelectorAll('[data-pane]').forEach(x => { x.hidden = true }); $('#tabs').innerHTML = ''; $('#what').innerHTML = '<span class="note">No book or author chosen.</span>'; return }
   try {
-    if (book) {
-      if (!S.P.idOf.has(book)) { $('#profile').innerHTML = ''; fail(`Unknown book URI: ${book}`); return }
-      await renderBook(book)
-    } else {
-      if (!S.P.authorBooks.has(author)) { $('#profile').innerHTML = ''; fail(`Unknown author URI: ${author}`); return }
-      await renderAuthor(author)
-    }
+    if (book) { if (!S.P.idOf.has(book)) { fail(`Unknown book URI: ${book}`); return } await renderBook(book) }
+    else { if (!S.P.authorBooks.has(author)) { fail(`Unknown author URI: ${author}`); return } await renderAuthor(author) }
+    showResults()
   } catch (e) { fail(e) } finally { status('') }
 }
 
-// ---- profile building blocks ----------------------------------------------------------------------------------------
-const section = (id, title, intro = '') => `<section id="${id}" class="panel"><h2>${title}</h2>${intro}<div class="body"></div><p class="dl"></p></section>`
-const noData = id => { const s = $(`#${id}`); s.querySelector('.body').innerHTML = `<p class="nodata">${NO_DATA}</p>`; s.querySelector('.dl').innerHTML = '' }
-function chartBox(id, cls = 'chart') { const d = document.createElement('div'); d.className = cls; $(`#${id} .body`).appendChild(d); return d }
-function dlButton(id, label, name, rows, cols) {
-  const b = document.createElement('button'); b.type = 'button'; b.textContent = label
-  b.onclick = () => saveText(toTSV(rows, cols), `${S.view.stem}_${name}.tsv`)
-  $(`#${id} .dl`).appendChild(b); S.view.files[name] = { rows, cols, label }
+// ---- captions -----------------------------------------------------------------------------------------------------
+const today = () => new Date().toISOString().slice(0, 10)
+const footer = () => `${APP.name} · 10-type model · OpenITI ${S.release.release} · data ${dataCommit(S.release).slice(0, 7)} · ${today()} · ${location.href}`
+const bookLine = uri => `${asCaption(bookTitleText(uri))} · ${uri}`
+
+// ---- book profile ---------------------------------------------------------------------------------------------------
+const BOOK_TABS = [{ id: 'overview', label: 'Overview' }, { id: 'text', label: 'Through the text' }, { id: 'entropy', label: 'Entropy compared' }, { id: 'similar', label: 'Similar books' }, { id: 'author', label: 'Author' }]
+const AUTHOR_TABS = [{ id: 'a-overview', label: 'Overview' }, { id: 'a-books', label: 'Books' }]
+let T = null
+function setTabs(list, wanted, enabled) {
+  T = tabs($('#tabs'), list, async id => { await updateURL(); await drawTab(id); activeCharts().forEach(el => redraw(el)) })
+  T.enable(enabled); T.set(wanted && enabled[wanted] !== false ? wanted : list[0].id, true)
 }
 async function text(name) { return (S.texts ??= {})[name] ??= await (await fetch(`texts/${name}.html`)).text() }
 
 async function bookRows(id) {
   const base = dataBase(S.release) + 'classifier/'
-  const [rolling, entropy, tfidf, headers] = await Promise.all(['rolling', 'rolling_entropy', 'tfidf', 'headers'].map(t => readByKey(base + t + '/', [id])))
+  const headerRows = readByKey(base + 'header_texts/', [id]).catch(() => readByKey(base + 'headers/', [id]).then(r => r.filter(h => Number(h.level) <= 2)))   // earlier data commits have positions only
+  const [rolling, entropy, tfidf, headers] = await Promise.all([...['rolling', 'rolling_entropy', 'tfidf'].map(t => readByKey(base + t + '/', [id])), headerRows])
   rolling.sort((a, b) => a.start - b.start); entropy.sort((a, b) => a.start - b.start); tfidf.sort((a, b) => a.rank - b.rank)
   headers.sort((a, b) => a.pos - b.pos || a.level - b.level)
   return {
     rolling: rolling.map(r => ({ start: Number(r.start), ...Object.fromEntries(TYPES.map(t => [t, Number(r[t]) / 1e4])) })),          // stored as score x 10^4
     entropy: entropy.map(r => ({ start: Number(r.start), ENTRPOYUNI: Number(r.ENTRPOYUNI) / 1e6, ENTROPYBI: Number(r.ENTROPYBI) / 1e6 })),  // stored x 10^6
-    tfidf, headers: headersTable(headers),
+    tfidf, headers: headersTable(headers).map((h, i) => ({ ...h, text: headers[i].text ?? null, status: headers[i].status ?? null, confirmed: headers[i].confirmed === true })),
   }
 }
 
+function fileEntry(name, rows, cols) { S.view.files[name] = { rows, cols } }
+const tsv = name => { const f = S.view.files[name]; if (f) saveText(toTSV(f.rows, f.cols), `${S.view.stem}_${name}.tsv`) }
+
 async function renderBook(uri) {
-  const P = S.P, t0 = performance.now(), id = P.idOf.get(uri), author = authorOfURI(uri), l = bookLabel(uri), al = authorLabel(author)
+  const P = S.P, t0 = performance.now(), id = P.idOf.get(uri), author = authorOfURI(uri), l = bookLabel(uri)
   S.timing = { book: uri, start: t0 }
   status('Loading the book’s data …')
   document.title = `${bookTitleText(uri).replace(/\*/g, '')} — ${APP.name}`
   const link = P.linkOf(uri), top = P.booksClassified.filter(b => b.bookURI === uri).map(b => b.comparables).join('; ')
-  $('#profile').innerHTML = `
-    <header class="profile-head">
-      <h1 class="book-title">${bookTitleHTML(uri)}</h1>
-      <p class="ar-line">${ar(l?.titleAR)}${l?.titleAR && l?.authorAR ? ' — ' : ''}${ar(l?.authorAR)}</p>
-      <p>Author: <a href="${authorHref(author)}" data-nav>${esc(authorNameText(author))}</a> · URI <code>${esc(uri)}</code>${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">text (OpenITI release 2023.1.8)</a>` : ''}</p>
-      <p class="note">Top book type: ${esc(top)}. ${l?.ambiguous === '1' ? `Label flagged as uncertain${l.ambiguousNote ? `: ${esc(l.ambiguousNote)}` : ''}.` : ''}</p>
-      <p><button type="button" id="dl-all">Download all data of this profile (TSV files in a zip, with README)</button></p>
-    </header>
-    ${section('sec-radar', 'Book Typology: Complete Text Assessment', await text('assessment_book'))}
-    ${section('sec-rolling', 'Book Typology: Rolling Text Assessment', await text('assessment_rolling'))}
-    <div id="headers-ctl" class="headers-ctl" hidden></div>
-    ${section('sec-rollent', 'Entropy: Rolling Assessment', await text('assessment_rolling_ent'))}
-    ${section('sec-entuni', 'Entropy: Comparative Assessment — Across All Book Types: Unigram Entropy', '<p class="note">[1] Unigrams that occur only once in texts are excluded from calculations; [2] the red box marks the type to which the selected book belongs, the red line the book’s value.</p>')}
-    ${section('sec-entbi', 'Entropy: Comparative Assessment — Across All Book Types: Bigram Entropy', '<p class="note">[1] Bigrams that occur only once in texts are excluded from calculations; [2] the red box marks the type to which the selected book belongs, the red line the book’s value.</p>')}
-    ${section('sec-timeuni', 'Entropy: Place Within the Main Type Over Time: Unigram Entropy', '<p class="note">[1] Unigrams that occur only once in texts are excluded from calculations; [2] red lines indicate the place of the selected book: vertical line — its period; horizontal — its entropy score.</p>')}
-    ${section('sec-timebi', 'Entropy: Place Within the Main Type Over Time: Bigram Entropy', '<p class="note">[1] Bigrams that occur only once in texts are excluded from calculations; [2] red lines indicate the place of the selected book: vertical line — its period; horizontal — its entropy score.</p>')}
-    ${section('sec-tfidf', 'TF-IDF Neighbors: Similar Books', await text('tfidf_comps'))}
-    ${section('sec-author', `Author Assessment (based on all books): ${esc(authorNameText(author))}`, await text('assessment_author'))}`
+  $('#what').innerHTML = `<h1>${bookTitleHTML(uri)}</h1><div class="line2">${l?.titleAR || l?.authorAR ? `<span>${ar(l?.titleAR)}${l?.titleAR && l?.authorAR ? ' · ' : ''}${ar(l?.authorAR)}</span>` : ''}<a href="${authorHref(author)}" data-nav>${esc(authorNameText(author))}</a><code>${esc(uri)}</code><span>Top type: <b>${esc(top)}</b></span>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">Text in release 2023.1.8 ↗</a>` : ''}</div>${l?.ambiguous === '1' && l.ambiguousNote ? `<div class="note">Label flagged as uncertain: ${esc(l.ambiguousNote)}</div>` : ''}`
   S.view = { kind: 'book', bookURI: uri, authorURI: author, stem: `Classifier_${uri}`, files: {} }
-  $('#dl-all').onclick = () => downloadAll()
   const rows = await bookRows(id); S.timing.data = performance.now() - t0
   const V = S.view; Object.assign(V, { rollingRows: rows.rolling, entropyRows: rows.entropy, headers: rows.headers })
-  status('Drawing …')
-  // radar
-  V.radar = radarBook(P, uri, rows.rolling)
-  await radarBookChart(chartBox('sec-radar', 'chart radar'), V.radar, { filename: `${uri}_RADAR` })
-  if (!V.radar.hasRolling) $('#sec-radar .body').insertAdjacentHTML('beforeend', `<p class="nodata">Rolling Assessment: ${NO_DATA}</p>`)
-  dlButton('sec-radar', 'Download radar data (TSV)', 'radar', V.radar.rows, ['axis', 'type', 'complete', 'rolling', 'period'])
-  // rolling type plot and rolling entropy
-  if (rows.rolling.length) {
-    V.rollingSeries = rollingSeries(P, rows.rolling)
-    V.rollingDisplay = await rollingChart(chartBox('sec-rolling', 'chart tall'), V.rollingSeries, { filename: `${uri}_ROLLING`, bookTitle: bookTitleText(uri).replace(/\*/g, '') })
-    dlButton('sec-rolling', 'Download rolling scores, every window (TSV)', 'rolling', rows.rolling, ['start', ...TYPES])
-  } else noData('sec-rolling')
-  if (rows.entropy.length) {
-    V.entropyDisplay = await entropyLineChart(chartBox('sec-rollent'), rows.entropy, { filename: `${uri}_ROLLING_ENTROPY` })
-    dlButton('sec-rollent', 'Download rolling entropy, every window (TSV)', 'rolling_entropy', rows.entropy, ['start', 'ENTRPOYUNI', 'ENTROPYBI'])
-  } else noData('sec-rollent')
-  headersControl(rows)
-  // entropy boxplots
-  for (const [sec, which, kind] of [['sec-entuni', 'unigrams', 'types'], ['sec-entbi', 'bigrams', 'types'], ['sec-timeuni', 'unigrams', 'time'], ['sec-timebi', 'bigrams', 'time']]) {
-    const v = kind === 'types' ? entropyAcrossTypes(P, uri, which) : entropyTypeTime(P, uri, which)
-    V[`${kind}_${which}`] = v
-    if (!v) { noData(sec); continue }
-    if (kind === 'types') {
-      await boxTypesChart(chartBox(sec, 'chart tall'), v, { filename: `${uri}_ENTROPY_ASSESSMENT_${which}` })
-      dlButton(sec, 'Download the values behind this plot (TSV)', `entropy_types_${which}`, v.groups.flatMap(g => g.books.map((b, i) => ({ bookURI: b, classLabel: g.classLabel, [v.col]: g.values[i], selectedType: g.selected ? 1 : 0, thisBook: b === uri ? 1 : 0 }))), ['bookURI', 'classLabel', v.col, 'selectedType', 'thisBook'])
-    } else {
-      await boxTypeTimeChart(chartBox(sec), v, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_${which}` })
-      dlButton(sec, 'Download the values behind this plot (TSV)', `entropy_type_time_${which}`, v.groups.flatMap(g => g.books.map((b, i) => ({ bookURI: b, classLabel: v.classLabel, period: g.period, [v.col]: g.values[i], thisBook: b === uri ? 1 : 0 }))), ['bookURI', 'classLabel', 'period', v.col, 'thisBook'])
-    }
+  // all view data first (the downloads hold every view); charts are drawn when their tab opens
+  V.radar = radarBook(P, uri, rows.rolling); fileEntry('radar', V.radar.rows, ['axis', 'type', 'complete', 'rolling', 'period'])
+  if (rows.rolling.length) { V.rollingSeries = rollingSeries(P, rows.rolling); fileEntry('rolling', rows.rolling, ['start', ...TYPES]) }
+  if (rows.entropy.length) fileEntry('rolling_entropy', rows.entropy, ['start', 'ENTRPOYUNI', 'ENTROPYBI'])
+  for (const w of ['unigrams', 'bigrams']) {
+    const a = V[`types_${w}`] = entropyAcrossTypes(P, uri, w), b = V[`time_${w}`] = entropyTypeTime(P, uri, w)
+    if (a) fileEntry(`entropy_types_${w}`, a.groups.flatMap(g => g.books.map((x, i) => ({ bookURI: x, classLabel: g.classLabel, [a.col]: g.values[i], selectedType: g.selected ? 1 : 0, thisBook: x === uri ? 1 : 0 }))), ['bookURI', 'classLabel', a.col, 'selectedType', 'thisBook'])
+    if (b) fileEntry(`entropy_type_time_${w}`, b.groups.flatMap(g => g.books.map((x, i) => ({ bookURI: x, classLabel: b.classLabel, period: g.period, [b.col]: g.values[i], thisBook: x === uri ? 1 : 0 }))), ['bookURI', 'classLabel', 'period', b.col, 'thisBook'])
   }
-  // TF-IDF neighbours
   V.tfidf = tfidfTable(P, rows.tfidf)
-  if (V.tfidf.length) {
-    const tv = V.tfidf.map(r => ({ ...r, Book: bookTitleText(r.bookURI), Arabic: bookLabel(r.bookURI)?.titleAR || null }))
-    renderTable(chartBox('sec-tfidf', 'wide'), tv, ['rank', 'Book', 'Arabic', 'bookURI', 'similarity'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
-    dlButton('sec-tfidf', 'Download (TSV)', 'tfidf', tv, ['rank', 'Book', 'Arabic', 'bookURI', 'similarity'])
-  } else noData('sec-tfidf')
-  await authorBlock('sec-author', author)
+  V.tfidfRows = V.tfidf.map(r => ({ ...r, Book: bookTitleText(r.bookURI), Arabic: bookLabel(r.bookURI)?.titleAR || null }))
+  if (V.tfidf.length) fileEntry('tfidf', V.tfidfRows, ['rank', 'Book', 'Arabic', 'bookURI', 'similarity'])
+  authorData(author)
+  headersState(rows.headers)
+  const wanted = S.wanted ?? {}
+  if (wanted.levels !== undefined && wanted.levels !== null) V.levelsOn = new Set(String(wanted.levels).split('').map(Number).filter(x => V.headerLevels.includes(x)))
+  setTabs(BOOK_TABS, wanted.tab, { overview: true, text: rows.rolling.length > 0 || rows.entropy.length > 0, entropy: !!V.types_unigrams, similar: V.tfidf.length > 0, author: !!V.authorRadar })
+  S.dirty = new Set(BOOK_TABS.map(t => t.id))
+  await updateURL(); await drawTab(T.active)
   S.timing.done = performance.now() - t0; status('')
 }
 
-async function authorBlock(sec, author) {
+function authorData(author) {
   const P = S.P, V = S.view
   V.authorRadar = radarAuthor(P, author)
-  if (V.authorRadar) {
-    await radarAuthorChart(chartBox(sec, 'chart radar'), V.authorRadar, { filename: `${author}_RADAR` })
-    dlButton(sec, 'Download author radar data (TSV)', 'author_radar', V.authorRadar.rows, ['axis', 'type', 'final'])
-  } else $(`#${sec} .body`).insertAdjacentHTML('beforeend', `<p class="nodata">${NO_DATA}</p>`)
+  if (V.authorRadar) fileEntry('author_radar', V.authorRadar.rows, ['axis', 'type', 'final'])
   V.authorBooks = authorBooksTable(P, author)
-  const tv = V.authorBooks.map(r => ({ ...r, Book: bookTitleText(r.bookURI), Arabic: bookLabel(r.bookURI)?.titleAR || null }))
-  const h = document.createElement('h3'); h.textContent = `Books of the author (${tv.length})`; $(`#${sec} .body`).appendChild(h)
-  renderTable(chartBox(sec, 'wide'), tv, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
-  dlButton(sec, 'Download the author’s books (TSV)', 'author_books', tv, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'])
+  V.authorRows = V.authorBooks.map(r => ({ ...r, Book: bookTitleText(r.bookURI), Arabic: bookLabel(r.bookURI)?.titleAR || null }))
+  fileEntry('author_books', V.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'])
+}
+const authorCaption = author => ({ title: 'Author typology: mean rolling score per book type', subtitle: [`${authorNameText(author)} · ${author}`, 'Summary of the rolling assessments of all the author’s books in the OpenITI corpus.'], footer: footer() })
+const authorBooksTableDraw = host => renderTable(host, S.view.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
+
+// headers: only stored levels H1, H2; confirmed solid, unconfirmed dashed
+function headersState(all) {
+  const V = S.view, H = all.filter(h => h.level <= 2 && (SHOW_UNCONFIRMED_HEADERS || h.confirmed))
+  V.shownHeaders = H; V.headerLevels = [1, 2].filter(l => H.some(h => h.level === l))
+  V.levelsOn = new Set(V.headerLevels.includes(1) ? [1] : [])
+  const tv = H.map(h => ({ level: `H${h.level}`, header: h.text ?? 'header text not available', pos: h.pos, Confirmed: h.confirmed ? 'yes' : 'no', status: h.status ?? '' }))
+  V.headerRows = tv; if (H.length) fileEntry('headers', tv, ['level', 'header', 'pos', 'Confirmed', 'status'])
+}
+const headerKind = H => { const c = H.filter(h => h.confirmed).length; return c === H.length ? 'solid lines: headers of an annotated version' : c === 0 ? 'dashed lines: headers from a not yet annotated version; may be unreliable' : 'solid lines: confirmed headers; dashed: unconfirmed' }
+function textCaption(uri) {
+  const V = S.view, on = V.shownHeaders.filter(h => V.levelsOn.has(h.level))
+  const parts = [V.rollingSeries ? 'Type scores (0–1) in rolling windows every 200 tokens' : null, V.entropyRows.length ? `${V.rollingSeries ? 'lower panel: ' : ''}unigram and bigram entropy` : null,
+    on.length ? `vertical lines: ${[...V.levelsOn].sort().map(l => `H${l}`).join(', ')} headers (${headerKind(on)})` : null].filter(Boolean)
+  return { title: V.rollingSeries ? 'Book types along the text' : 'Entropy along the text', subtitle: [bookLine(uri), parts.join(' · ')], footer: footer() }
+}
+function drawHeaderControls() {
+  const V = S.view, box = $('#hdr-ctl'), H = V.shownHeaders
+  $('#hdr-note').hidden = !H.some(h => !h.confirmed)
+  box.innerHTML = H.length ? `<span>Headers:</span>${V.headerLevels.map(l => `<label><input type="checkbox" class="hdr-lv" value="${l}" ${V.levelsOn.has(l) ? 'checked' : ''}> H${l} (${H.filter(h => h.level === l).length})</label>`).join('')}` : ''
+  box.querySelectorAll('.hdr-lv').forEach(c => c.onchange = async () => {
+    V.levelsOn = new Set([...box.querySelectorAll('.hdr-lv:checked')].map(x => Number(x.value)))
+    await updateURL(); const el = $('#chart-text'); el._kit.caption = textCaption(V.bookURI); el._kit.layout = { ...el._kit.layout, shapes: headerShapes(H, V.levelsOn) }; await redraw(el)
+  })
+  const d = $('#hdr-table'); d.hidden = !H.length
+  if (H.length) { const nText = V.headerRows.filter(r => r.header !== 'header text not available').length
+    d.querySelector('summary').textContent = `Headers in this book (${H.length}; with text ${nText})`
+    renderTable($('#tbl-headers'), V.headerRows, ['level', 'header', 'pos', 'Confirmed'], { rtl: ['header'] }) }
 }
 
-// headers switch: off by default; H1/H2/H3 toggles only for levels the book has; lines on both rolling plots
-function headersControl(rows) {
-  const box = $('#headers-ctl'), H = rows.headers, levels = [1, 2, 3].filter(l => H.some(h => h.level === l))
-  S.view.headerLevels = levels; S.view.headersOn = new Set()
-  if (!H.length || !rows.rolling.length) { box.hidden = true; return }
-  box.hidden = false
-  box.innerHTML = `<label><input type="checkbox" id="hdr-on"> Show section headers on the rolling plots</label>
-    <span class="levels">${levels.map(l => `<label><input type="checkbox" class="hdr-lv" value="${l}" checked disabled> H${l} (${H.filter(h => h.level === l).length})</label>`).join(' ')}</span>
-    <details class="headers-table"><summary>Headers table (${H.length})</summary><p class="note">Positions are token offsets in the text (as on the plots' x axis); milestone = position / 300. Header texts are not part of the data.</p><div class="wide"></div><p class="dl"></p></details>`
-  const tv = H.map(h => ({ level: `H${h.level}`, header: null, pos: h.pos, milestone: h.milestone }))
-  renderTable(box.querySelector('.headers-table .wide'), tv, ['level', 'header', 'pos', 'milestone'])
-  const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Download headers (TSV)'; b.onclick = () => saveText(toTSV(tv, ['level', 'header', 'pos', 'milestone']), `${S.view.stem}_headers.tsv`)
-  box.querySelector('.headers-table .dl').appendChild(b); S.view.files.headers = { rows: tv, cols: ['level', 'header', 'pos', 'milestone'] }
-  const apply = async () => {
-    const on = $('#hdr-on').checked; box.querySelectorAll('.hdr-lv').forEach(c => c.disabled = !on)
-    const lv = new Set(on ? [...box.querySelectorAll('.hdr-lv:checked')].map(c => Number(c.value)) : [])
-    S.view.headersOn = lv
-    const Plotly = await loadPlotly(), shapes = headerShapes(H, lv)
-    for (const el of [$('#sec-rolling .chart'), $('#sec-rollent .chart')]) if (el) await Plotly.relayout(el, { shapes })
-  }
-  $('#hdr-on').onchange = apply; box.querySelectorAll('.hdr-lv').forEach(c => c.onchange = apply)
+async function drawTab(id) {
+  if (!S.view || !S.dirty.has(id)) return
+  S.dirty.delete(id); const V = S.view, P = S.P, uri = V.bookURI, author = V.authorURI
+  if (id === 'overview') {
+    $('#note-radar').innerHTML = await text('assessment_book')
+    await radarBookChart($('#chart-radar'), V.radar, { filename: `${uri}_RADAR`, caption: { title: 'Book typology: complete text, rolling windows and the period',
+      subtitle: [bookLine(uri), `Blue: complete text; ${V.radar.hasRolling ? 'orange: mean of the rolling windows; ' : ''}green: types of the books within ±50 lunar years.`], footer: footer() } })
+    const nd = $('#nodata-radar'); nd.hidden = V.radar.hasRolling; nd.textContent = `Rolling Assessment: ${NO_DATA}`
+    const rows = [...V.radar.rows].sort((a, b) => b.complete - a.complete)
+    renderTable($('#tbl-top'), rows, ['type', 'complete', 'rolling', 'period'])
+  } else if (id === 'text') {
+    $('#note-rolling').innerHTML = await text('assessment_rolling'); $('#note-entropy').innerHTML = await text('assessment_rolling_ent')
+    drawHeaderControls()
+    const el = $('#chart-text')
+    V.textDisplay = await throughTextChart(el, V.rollingSeries, V.entropyRows, { filename: `${uri}_THROUGH_THE_TEXT`, caption: textCaption(uri), shapes: headerShapes(V.shownHeaders, V.levelsOn) })
+    el.style.height = `${el._kit.layout.height}px`
+  } else if (id === 'entropy') {
+    const sub = (v, what) => [bookLine(uri), `${what} Unique ${v.col.includes('Uni') ? 'unigrams' : 'bigrams'} are excluded (2up). Value of this book: ${v.value.toFixed(3)}.`]
+    await boxTypesChart($('#chart-entuni'), V.types_unigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Unigrams2up`, caption: { title: 'Unigram entropy across all book types', subtitle: sub(V.types_unigrams, 'Orange box: the type of this book; orange line: this book.'), footer: footer() } })
+    await boxTypesChart($('#chart-entbi'), V.types_bigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Bigrams2up`, caption: { title: 'Bigram entropy across all book types', subtitle: sub(V.types_bigrams, 'Orange box: the type of this book; orange line: this book.'), footer: footer() } })
+    await boxTypeTimeChart($('#chart-timeuni'), V.time_unigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Unigrams2up`, caption: { title: `Unigram entropy within the type over time: ${esc(V.time_unigrams.classLabel)}`, subtitle: sub(V.time_unigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.'), footer: footer() } })
+    await boxTypeTimeChart($('#chart-timebi'), V.time_bigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Bigrams2up`, caption: { title: `Bigram entropy within the type over time: ${esc(V.time_bigrams.classLabel)}`, subtitle: sub(V.time_bigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.'), footer: footer() } })
+  } else if (id === 'similar') {
+    $('#note-tfidf').innerHTML = await text('tfidf_comps')
+    renderTable($('#tbl-tfidf'), V.tfidfRows, ['rank', 'Book', 'Arabic', 'bookURI', 'similarity'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
+  } else if (id === 'author') {
+    $('#note-author').innerHTML = await text('assessment_author')
+    await radarAuthorChart($('#chart-author'), V.authorRadar, { filename: `${author}_RADAR`, caption: authorCaption(author) })
+    $('#author-books-title').textContent = `Books of ${authorNameText(author)} (${V.authorRows.length})`
+    authorBooksTableDraw($('#tbl-author'))
+  } else if (id === 'a-overview') {
+    $('#note-aauthor').innerHTML = await text('assessment_author')
+    if (V.authorRadar) await radarAuthorChart($('#chart-aradar'), V.authorRadar, { filename: `${author}_RADAR`, caption: authorCaption(author) })
+  } else if (id === 'a-books') { $('#abooks-title').textContent = `Books of ${authorNameText(author)} (${V.authorRows.length})`; authorBooksTableDraw($('#tbl-abooks')) }
 }
 
 async function renderAuthor(author) {
-  const P = S.P, t0 = performance.now(), l = authorLabel(author)
+  const t0 = performance.now(), l = authorLabel(author), ah = Number(author.slice(0, 4))
   S.timing = { author, start: t0 }
   document.title = `${authorNameText(author)} — ${APP.name}`
-  const ah = Number(author.slice(0, 4))
-  $('#profile').innerHTML = `
-    <header class="profile-head">
-      <h1>${esc(authorNameText(author))}</h1>
-      <p class="ar-line">${ar(l?.authorAR)}</p>
-      <p>URI <code>${esc(author)}</code> · death date: ${ah} AH${l?.deathCE ? ` / ${esc(l.deathCE)} CE` : ''} (from the URI${l?.deathCE ? ' and the label' : ''})</p>
-      <p><button type="button" id="dl-all">Download all data of this profile (TSV files in a zip, with README)</button></p>
-    </header>
-    ${section('sec-author', 'Author Assessment (based on all books)', await text('assessment_author'))}`
+  $('#what').innerHTML = `<h1>${esc(authorNameText(author))}</h1><div class="line2">${ar(l?.authorAR)}<code>${esc(author)}</code><span>Death date: ${ah} AH${l?.deathCE ? ` / ${esc(l.deathCE)} CE` : ''}</span></div>`
   S.view = { kind: 'author', authorURI: author, stem: `Classifier_${author}`, files: {} }
-  $('#dl-all').onclick = () => downloadAll()
-  await authorBlock('sec-author', author)
+  authorData(author)
+  setTabs(AUTHOR_TABS, S.wanted?.tab, { 'a-overview': !!S.view.authorRadar, 'a-books': S.view.authorRows.length > 0 })
+  S.dirty = new Set(AUTHOR_TABS.map(t => t.id))
+  await updateURL(); await drawTab(T.active)
   S.timing.done = performance.now() - t0
 }
 
-async function downloadAll() {
-  const V = S.view; if (!V) return
-  const files = {}
-  for (const [name, f] of Object.entries(V.files)) files[`${name}.tsv`] = toTSV(f.rows, f.cols)
-  if (V.kind === 'book' && V.rollingSeries === undefined && !files['rolling.tsv']) files['rolling.tsv'] = toTSV([], ['start', ...TYPES])
-  const now = new Date()
-  files['README.txt'] = [
-    `${APP.name} (${APP.version}), app commit ${S.appCommit ?? 'not available'} (https://github.com/${APP.repo})`,
-    `${APP.title}`,
-    `Data: OpenITI release ${S.release.release}; data repository ${S.release.repo}, commit ${S.release.commit} (classifier/, data_BC/, labels/)`,
-    `Downloaded: ${now.toISOString()} (${now.toString()})`,
-    `Profile: ${V.kind === 'book' ? `book ${V.bookURI}` : `author ${V.authorURI}`}; page address: ${location.href}`,
-    '', 'Book titles and author names (columns Book, Arabic) are working labels and may contain errors; the URI is authoritative.',
-    '', 'Files (UTF-8, tab-separated, header row; character fields and column names in double quotes, embedded quotes doubled; NA = not available):',
-    ...Object.entries(V.files).map(([n, f]) => `  ${n}.tsv: ${DESCR[n.replace(/_(unigrams|bigrams)$/, '')] ?? ''} Columns: ${f.cols.join(', ')}.`),
-  ].join('\n') + '\n'
-  saveBlob(await zipFiles(files), `${V.stem}_${stamp()}.zip`)
-}
+const activeCharts = () => [...document.querySelectorAll(`[data-pane="${T?.active}"] .js-plotly-plot`)]
+let resizeTimer
+function onResize() { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => activeCharts().forEach(el => redraw(el)), 180) }
+
 const DESCR = {
   radar: 'the radar: per axis (type), complete = whole-text score (0.1 counted as 0; undefined = 1 when all ten scores are equal), rolling = mean over the rolling windows, period = share of each top type among books with a death decade within +-50 years.',
   rolling: 'the rolling type scores of every window (start = token offset of the window; scores 0-1); the plot shows a reduced number of points for long books.',
@@ -255,31 +251,71 @@ const DESCR = {
   tfidf: 'the 250 nearest books by TF-IDF cosine similarity (unigrams and bigrams).',
   author_radar: 'the author\'s mean rolling score per type over all of the author\'s books.',
   author_books: 'the author\'s books with their top type (comparables; ties give two rows) and its score (index).',
-  headers: 'section headers of the book: level, position (token offset), milestone = position / 300; header texts are not in the data.',
+  headers: 'section headers H1 and H2 of the book as stored for the rolling assessment (a window-sampled subset of the headers): level, text, position (token offset), Confirmed = yes for annotated versions (.completed, .mARkdown), status of the version.',
+}
+async function downloadAll() {
+  const V = S.view; if (!V) return
+  await updateURL()
+  const files = {}
+  for (const [name, f] of Object.entries(V.files)) files[`${name}.tsv`] = toTSV(f.rows, f.cols)
+  const now = new Date()
+  files['README.txt'] = [
+    `${APP.name} (${APP.version}), app commit ${S.appCommit ?? 'not available'} (https://github.com/${APP.repo})`,
+    `${APP.title}`,
+    `Data: OpenITI release ${S.release.release}; data repository ${S.release.repo}, commit ${dataCommit(S.release)} (classifier/, data_BC/, labels/)`,
+    `Downloaded: ${now.toISOString()} (${now.toString()})`,
+    `Profile: ${V.kind === 'book' ? `book ${V.bookURI}` : `author ${V.authorURI}`}; page address: ${location.href}`,
+    '', 'Cite as:', CITE.text('chicago').replace(/\*/g, ''),
+    '', 'Book titles and author names (columns Book, Arabic) are working labels and may contain errors; the URI is authoritative.',
+    '', 'Files (UTF-8, tab-separated, header row; character fields and column names in double quotes, embedded quotes doubled; NA = not available):',
+    ...Object.entries(V.files).map(([n, f]) => `  ${n}.tsv: ${DESCR[n.replace(/_(unigrams|bigrams)$/, '')] ?? ''} Columns: ${f.cols.join(', ')}.`),
+  ].join('\n') + '\n'
+  saveBlob(await zipFiles(files), `${V.stem}_${stamp()}.zip`)
 }
 
-// ---- version line ---------------------------------------------------------------------------------------------------
+const citation = () => { const V = S.view, y = new Date().getFullYear(), book = V.kind === 'book'
+  const title = book ? `Profile of *${(/\*([^*]+)\*/.exec(bookTitleText(V.bookURI)) ?? [0, bookTitleText(V.bookURI)])[1]}*` : `Profile of ${authorNameText(V.authorURI)}`
+  return { year: y, title, app: CITATION.title, version: CITATION.version, doi: CITATION.doi, data: CITATION.data, search: book ? `book ${V.bookURI}` : `author ${V.authorURI}`, accessed: today(), link: location.href, key: `romanov${y}classifier` } }
 async function versionLine() {
   try {
     const cached = sessionStorage.getItem('cls-app-commit')
-    S.appCommit = cached || (await (await fetch(`https://api.github.com/repos/${APP.repo}/commits/main`)).json()).sha?.slice(0, 7) || null
+    S.appCommit = cached || (location.hostname === 'localhost' ? 'local' : (await (await fetch(`https://api.github.com/repos/${APP.repo}/commits/main`)).json()).sha?.slice(0, 7)) || null
     if (S.appCommit) sessionStorage.setItem('cls-app-commit', S.appCommit)
   } catch { S.appCommit = null }
-  $('#version').innerHTML = `${APP.name} ${APP.version} · app commit <a href="https://github.com/${APP.repo}/commit/${S.appCommit ?? ''}">${S.appCommit ?? 'n/a'}</a> · data: OpenITI ${S.release.release}, <a href="https://github.com/${S.release.repo}/tree/${S.release.commit}">${S.release.repo.split('/')[1]}@${S.release.commit.slice(0, 7)}</a>`
+  const c = dataCommit(S.release)
+  $('#version').innerHTML = `${APP.name} ${APP.version} · app commit <a href="https://github.com/${APP.repo}/commit/${S.appCommit ?? ''}">${S.appCommit ?? 'n/a'}</a> · data: OpenITI ${S.release.release}, <a href="https://github.com/${S.release.repo}/tree/${c}">${S.release.repo.split('/')[1]}@${c.slice(0, 7)}</a>`
 }
 
 // ---- wiring -----------------------------------------------------------------------------------------------------------
+const UI = panel({ onResize })
+const CITE = citeDialog(citation)
 async function init() {
-  versionLine()
-  $('#intro-text').innerHTML = await text('intro_short')
-  $('#comparables').innerHTML = await text('comparables')
+  versionLine(); dialogs()
+  $('#link-other').href = ngramreaderURL()
+  const c = CITATION; $('#citation-block').innerHTML = `<b>Citation:</b> Romanov, Maxim. (${c.year}). <i>${esc(c.title)} (based on OpenITI, Release ver. 2023.1.8)</i> (Version ${c.version}) [Software]. Zenodo. <a href="https://doi.org/${c.doi}">https://doi.org/${c.doi}</a>`
+  const help = e => { e.preventDefault(); $('#help-dialog').showModal() }
+  $('#open-help').onclick = help; document.querySelectorAll('[data-help]').forEach(a => a.onclick = help)
+  $('#cite').onclick = () => CITE.open()
+  $('#copy-link').onclick = async () => { await updateURL(); copyText(location.href, 'Link copied') }
+  $('#download-all').onclick = downloadAll
+  $('#dl-tfidf').onclick = () => tsv('tfidf'); $('#dl-author').onclick = () => tsv('author_books'); $('#dl-abooks').onclick = () => tsv('author_books'); $('#dl-headers').onclick = () => tsv('headers')
+  exportBar($('#x-radar'), () => [$('#chart-radar')], () => tsv('radar'))
+  exportBar($('#x-text'), () => [$('#chart-text')], () => { tsv('rolling'); tsv('rolling_entropy') })
+  exportBar($('#x-entropy'), () => ['#chart-entuni', '#chart-entbi', '#chart-timeuni', '#chart-timebi'].map(s => $(s)), () => { for (const n of ['entropy_types_unigrams', 'entropy_types_bigrams', 'entropy_type_time_unigrams', 'entropy_type_time_bigrams']) tsv(n) })
+  exportBar($('#x-author'), () => [$('#chart-author')], () => tsv('author_radar'))
+  exportBar($('#x-aradar'), () => [$('#chart-aradar')], () => tsv('author_radar'))
+  new ResizeObserver(onResize).observe($('#content'))
+  const [intro, comparables] = await Promise.all([text('intro_short'), text('comparables')])
+  $('#intro-text').innerHTML = intro; $('#help-intro').innerHTML = intro; $('#comparables').innerHTML = comparables
+  S.wanted = await readHash()
   status('Loading the classifier data …'); const t0 = performance.now()
   try { S.P = prepare(await loadStatic(dataBase(S.release))) } catch (e) { status(''); fail(e); return }
   S.loadMs = performance.now() - t0
   buildIndex(); status('')
-  $('#q').disabled = false; $('#q').placeholder = 'Search books and authors: title, name, Arabic or URI'
+  $('#q').disabled = false; $('#q').placeholder = 'e.g. tabari tarikh'
   $('#q').oninput = showResults
-  $('#q').onkeydown = e => { if (e.key === 'Enter') { const a = $('#results-list a'); if (a) { $('#results-list').hidden = true; navigate(a.getAttribute('href')) } } }
+  $('#q').onkeydown = e => { if (e.key === 'Enter') { const a = $('#results-list a'); if (a) navigate(a.getAttribute('href')) } }
+  if (!location.search) UI.fold(false)
   await route()
   S.ready = true
 }

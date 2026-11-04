@@ -3,6 +3,8 @@
 # the static app: tfidf_comps "top 1,500 matches" -> "top 250 matches" (ruled; the data has 250) and `distance` ->
 # `similarity` (the column's new name); the rolling notes "If you see an error and no rolling graph" -> "If you see
 # "No data for this text." instead of the rolling graph" (the static app shows that message, not an error).
+# The rolling note describes the new drawing, and the notes now stand under the plot ("The graph above").
+# The radar note names the new layer colours (shared chart style): dark green -> blue, yellow -> orange, red -> green.
 # Not needed to run the app.
 # Usage: Rscript tools/render_texts.R <folder with the extracted .md files>
 args <- commandArgs(trailingOnly = TRUE); src <- sub("/?$", "/", args[1])
@@ -10,6 +12,11 @@ for (f in c("intro_short", "assessment_book", "assessment_rolling", "assessment_
   md <- paste(readLines(paste0(src, f, ".md"), encoding = "UTF-8", warn = FALSE), collapse = "\n")
   if (f == "tfidf_comps") { stopifnot(grepl("top 1,500 matches", md, fixed = TRUE), grepl("`distance`", md, fixed = TRUE))
     md <- sub("top 1,500 matches", "top 250 matches", md, fixed = TRUE); md <- sub("`distance`", "`similarity`", md, fixed = TRUE) }
+  if (f == "assessment_book") { stopifnot(grepl("(dark green shape)", md, fixed = TRUE), grepl("(yellow shape)", md, fixed = TRUE), grepl("Red shape", md, fixed = TRUE))
+    md <- sub("(dark green shape)", "(blue shape)", md, fixed = TRUE); md <- sub("(yellow shape)", "(orange shape)", md, fixed = TRUE); md <- sub("Red shape", "Green shape", md, fixed = TRUE) }
+  if (f == "assessment_rolling") { old <- "light thin green line denoted the complete lack of the signal, while dark thick line shows varying degrees of the signal"; stopifnot(grepl(old, md, fixed = TRUE))
+    md <- sub(old, "a flat line denotes the complete lack of the signal, while the filled area shows varying degrees of the signal", md, fixed = TRUE) }
+  if (f %in% c("assessment_rolling", "assessment_rolling_ent")) md <- sub("The graph below", "The graph above", md, fixed = TRUE)
   if (f %in% c("assessment_rolling", "assessment_rolling_ent")) { stopifnot(grepl("If you see an error and no rolling graph", md, fixed = TRUE))
     md <- sub("If you see an error and no rolling graph", "If you see \"No data for this text.\" instead of the rolling graph", md, fixed = TRUE) }
   writeLines(enc2utf8(markdown::mark(text = md)), paste0("texts/", f, ".html"), useBytes = TRUE)
