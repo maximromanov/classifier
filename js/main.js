@@ -9,6 +9,7 @@ import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
 import { panel, tabs, dialogs, citeDialog, copyText } from './ui.js'
 import { packState, unpackState } from './share.js'
+import { chartCitation } from './cite.js'
 
 const $ = s => document.querySelector(s)
 const NO_DATA = 'No data for this text.'
@@ -88,7 +89,7 @@ async function route() {
 
 // ---- captions -----------------------------------------------------------------------------------------------------
 const today = () => new Date().toISOString().slice(0, 10)
-const footer = () => `<b>SOURCE:</b> ${APP.name} • 10-type model • OpenITI ${S.release.release} • data ${dataCommit(S.release).slice(0, 7)} • ${today()} • <b>LINK:</b> ${location.href}`
+const footer = () => chartCitation(citation(), dataCommit(S.release).slice(0, 7))
 const bookLine = uri => `${asCaption(bookTitleText(uri))} · ${uri}`
 
 // ---- book profile ---------------------------------------------------------------------------------------------------
