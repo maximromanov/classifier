@@ -4,7 +4,8 @@ import { APP, CITATION, SHOW_UNCONFIRMED_HEADERS, RELEASES, DEFAULT_RELEASE, dat
 import { loadStatic, readByKey } from './data.js'
 import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, authorBooksMatrix, authorTopTypes, undefinedWindow, headersTable, authorOfURI, TYPES } from './compute.js'
 import { radarBookChart, radarAuthorChart, bookBarsChart, rankedTypesChart, allBooksChart, topTypesChart, rollingChart, entropyLineChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
-import { redraw, setShapes, exportBar } from './chartkit.js'
+import { redraw, setShapes, exportBar, setTypeCodes, typeLabel } from './chartkit.js'
+import { createTours, cleanLink } from './tour.js'
 import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
 import { panel, tabs, dialogs, citeDialog, copyText, fontControls } from './ui.js'
@@ -78,7 +79,7 @@ async function route() {
   const p = new URLSearchParams(location.search), book = p.get('book'), author = p.get('author')
   $('#messages').innerHTML = ''
   const on = !!(book || author)
-  $('#empty').hidden = on; for (const id of ['cite', 'copy-link', 'download-all']) $('#' + id).disabled = !on
+  $('#empty').hidden = on; $('#howto').hidden = on; for (const id of ['cite', 'copy-link', 'download-all']) $('#' + id).disabled = !on
   if (!on) { document.title = APP.name; S.view = null; document.querySelectorAll('[data-pane]').forEach(x => { x.hidden = true }); $('#tabs').innerHTML = ''; $('#what').innerHTML = '<span class="note">No book or author chosen.</span>'; return }
   try {
     if (book) { if (!S.P.idOf.has(book)) { fail(`Unknown book URI: ${book}`); return } await renderBook(book) }
@@ -124,7 +125,7 @@ async function renderBook(uri) {
   S.timing = { book: uri, start: t0 }
   status('Loading the book’s data …')
   document.title = `${bookTitleText(uri).replace(/\*/g, '')} — ${APP.name}`
-  const link = P.linkOf(uri), top = P.booksClassified.filter(b => b.bookURI === uri).map(b => b.comparables).join('; ')
+  const link = P.linkOf(uri), top = P.booksClassified.filter(b => b.bookURI === uri).map(b => typeLabel(b.comparables)).join('; ')
   $('#what').innerHTML = `<h1>${bookTitleHTML(uri)}</h1><div class="line2">${l?.titleAR || l?.authorAR ? `<span>${ar(l?.titleAR)}${l?.titleAR && l?.authorAR ? ' · ' : ''}${ar(l?.authorAR)}</span>` : ''}<a href="${authorHref(author)}" data-nav>${esc(authorNameText(author))}</a><code>${esc(uri)}</code><span>Top type: <b>${esc(top)}</b></span>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">Text in release 2023.1.8 ↗</a>` : ''}</div>${l?.ambiguous === '1' && l.ambiguousNote ? `<div class="note">Label flagged as uncertain: ${esc(l.ambiguousNote)}</div>` : ''}`
   S.view = { kind: 'book', bookURI: uri, authorURI: author, stem: `Classifier_${uri}`, files: {}, ...chartChoice() }
   const rows = await bookRows(id); S.timing.data = performance.now() - t0
@@ -177,7 +178,7 @@ const paintSwitches = () => { const V = S.view; if (!V) return
   document.querySelectorAll('.sw-bchart button').forEach(b => b.classList.toggle('on', b.dataset.v === V.bookChart))
   document.querySelectorAll('.sw-achart button').forEach(b => b.classList.toggle('on', b.dataset.v === V.authorChart)) }
 const authorCaption = author => ({ title: 'Author typology: mean rolling score per book type', subtitle: [`${authorNameText(author)} · ${author}`], note: 'Summary of the rolling assessments of all the author’s books in the OpenITI corpus.', footer: footer() })
-const authorBooksTableDraw = host => renderTable(host, S.view.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
+const authorBooksTableDraw = host => renderTable(host, S.view.authorRows, ['Book', 'Arabic', 'bookURI', 'comparables', 'index'], { rtl: ['Arabic'], render: { comparables: v => esc(typeLabel(v)), Book: (v, r) => bookLink(r.bookURI) } })
 
 // headers: only stored levels H1, H2; confirmed solid, unconfirmed dashed
 function headersState(all) {
@@ -221,7 +222,7 @@ async function drawTab(id) {
     await (radar ? radarBookChart($('#chart-radar'), V.radar, opts) : bookBarsChart($('#chart-bars'), V.radar, opts))
     const nd = $('#nodata-radar'); nd.hidden = V.radar.hasRolling; nd.textContent = `Rolling Assessment: ${NO_DATA}`
     const rows = [...V.radar.rows].sort((a, b) => b.complete - a.complete)
-    renderTable($('#tbl-top'), rows, ['type', 'complete', 'rolling', 'period'])
+    renderTable($('#tbl-top'), rows, ['type', 'complete', 'rolling', 'period'], { render: { type: v => esc(typeLabel(v)) } })
   } else if (id === 'text') {
     $('#note-rolling').innerHTML = await text('assessment_rolling'); $('#note-entropy').innerHTML = await text('assessment_rolling_ent')
     drawHeaderControls()
@@ -235,8 +236,8 @@ async function drawTab(id) {
     const sub = (v, what) => ({ subtitle: [bookLine(uri)], note: `${what} Unique ${v.col.includes('Uni') ? 'unigrams' : 'bigrams'} are excluded (2up). Value of this book: ${v.value.toFixed(3)}.`, footer: footer() })
     await boxTypesChart($('#chart-entuni'), V.types_unigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Unigrams2up`, caption: { title: 'Unigram entropy across all book types', ...sub(V.types_unigrams, 'Orange box: the type of this book; orange line: this book.') } })
     await boxTypesChart($('#chart-entbi'), V.types_bigrams, { filename: `${uri}_ENTROPY_ASSESSMENT_Bigrams2up`, caption: { title: 'Bigram entropy across all book types', ...sub(V.types_bigrams, 'Orange box: the type of this book; orange line: this book.') } })
-    await boxTypeTimeChart($('#chart-timeuni'), V.time_unigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Unigrams2up`, caption: { title: `Unigram entropy within the type over time: ${esc(V.time_unigrams.classLabel)}`, ...sub(V.time_unigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.') } })
-    await boxTypeTimeChart($('#chart-timebi'), V.time_bigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Bigrams2up`, caption: { title: `Bigram entropy within the type over time: ${esc(V.time_bigrams.classLabel)}`, ...sub(V.time_bigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.') } })
+    await boxTypeTimeChart($('#chart-timeuni'), V.time_unigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Unigrams2up`, caption: { title: `Unigram entropy within the type over time: ${esc(typeLabel(V.time_unigrams.classLabel))}`, ...sub(V.time_unigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.') } })
+    await boxTypeTimeChart($('#chart-timebi'), V.time_bigrams, { filename: `${uri}_ENTROPY_IN_TYPE_CHRONO_CONTEXT_Bigrams2up`, caption: { title: `Bigram entropy within the type over time: ${esc(typeLabel(V.time_bigrams.classLabel))}`, ...sub(V.time_bigrams, 'Orange lines: the period (vertical) and the entropy (horizontal) of this book.') } })
   } else if (id === 'similar') {
     $('#note-tfidf').innerHTML = await text('tfidf_comps')
     renderTable($('#tbl-tfidf'), V.tfidfRows, ['rank', 'Book', 'Arabic', 'bookURI', 'similarity'], { rtl: ['Arabic'], render: { Book: (v, r) => bookLink(r.bookURI) } })
@@ -297,7 +298,7 @@ async function downloadAll() {
     `${APP.title}`,
     `Data: OpenITI release ${S.release.release}; data repository ${S.release.repo}, commit ${dataCommit(S.release)} (classifier/, data_BC/, labels/)`,
     `Downloaded: ${now.toISOString()} (${now.toString()})`,
-    `Profile: ${V.kind === 'book' ? `book ${V.bookURI}` : `author ${V.authorURI}`}; page address: ${location.href}`,
+    `Profile: ${V.kind === 'book' ? `book ${V.bookURI}` : `author ${V.authorURI}`}; page address: ${cleanLink()}`,
     '', 'Cite as:', CITE.text('chicago').replace(/\*/g, ''),
     '', 'Book titles and author names (columns Book, Arabic) are working labels and may contain errors; the URI is authoritative.',
     '', 'Files (UTF-8, tab-separated, header row; character fields and column names in double quotes, embedded quotes doubled; NA = not available):',
@@ -308,7 +309,7 @@ async function downloadAll() {
 
 const citation = () => { const V = S.view, y = new Date().getFullYear(), book = V.kind === 'book'
   const title = book ? `Profile of *${(/\*([^*]+)\*/.exec(bookTitleText(V.bookURI)) ?? [0, bookTitleText(V.bookURI)])[1]}*` : `Profile of ${authorNameText(V.authorURI)}`
-  return { year: y, title, app: CITATION.title, version: CITATION.version, doi: CITATION.doi, data: CITATION.data, search: book ? `book ${V.bookURI}` : `author ${V.authorURI}`, accessed: today(), link: location.href, key: `romanov${y}classifier` } }
+  return { year: y, title, app: CITATION.title, version: CITATION.version, doi: CITATION.doi, data: CITATION.data, search: book ? `book ${V.bookURI}` : `author ${V.authorURI}`, accessed: today(), link: cleanLink(), key: `romanov${y}classifier` } }
 async function versionLine() {
   try {
     const cached = sessionStorage.getItem('cls-app-commit')
@@ -322,6 +323,14 @@ async function versionLine() {
 // ---- wiring -----------------------------------------------------------------------------------------------------------
 const UI = panel({ onResize })
 const CITE = citeDialog(citation)
+// a tour stop: the state of tours.json, opened as a link is
+async function openStop({ panel, book, author, t, h, v, a }) {
+  if (panel) UI.fold(panel === 'closed')
+  const u = new URL(location.href), tour = u.searchParams.get('tour'), stop = u.searchParams.get('stop'); u.search = ''; u.hash = ''
+  if (book) u.searchParams.set('book', book); if (author) u.searchParams.set('author', author); u.searchParams.set('tour', tour); u.searchParams.set('stop', stop)
+  history.replaceState(null, '', u); S.wanted = { tab: t, levels: h, bookChart: v, authorChart: a }; await route()
+}
+const TOURS = createTours({ open: openStop, links: {} })
 async function init() {
   versionLine(); dialogs()
   $('#link-other').href = ngramreaderURL()
@@ -329,7 +338,7 @@ async function init() {
   const help = e => { e.preventDefault(); $('#help-dialog').showModal() }
   $('#open-help').onclick = help; document.querySelectorAll('[data-help]').forEach(a => a.onclick = help)
   $('#cite').onclick = () => CITE.open()
-  $('#copy-link').onclick = async () => { await updateURL(); copyText(location.href, 'Link copied') }
+  $('#copy-link').onclick = async () => { await updateURL(); copyText(cleanLink(), 'Link copied') }
   $('#download-all').onclick = downloadAll
   $('#dl-tfidf').onclick = () => tsv('tfidf'); $('#dl-author').onclick = () => tsv('author_books'); $('#dl-abooks').onclick = () => tsv('author_books'); $('#dl-headers').onclick = () => tsv('headers')
   const shownOf = (...ids) => () => [ids.map(i => $(i)).find(el => !el.hidden)]
@@ -349,14 +358,15 @@ async function init() {
   $('#intro-text').innerHTML = intro; $('#help-intro').innerHTML = intro; $('#comparables').innerHTML = comparables
   S.wanted = await readHash()
   status('Loading the classifier data …'); const t0 = performance.now()
-  try { S.P = prepare(await loadStatic(dataBase(S.release))) } catch (e) { status(''); fail(e); return }
+  try { const st = await loadStatic(dataBase(S.release)); S.P = prepare(st); setTypeCodes(S.P.L.map(l => [l.classLabel, st.compsLabels.find(c => c.class === l.class)?.abbrev ?? 'UND'])) } catch (e) { status(''); fail(e); return }
   S.loadMs = performance.now() - t0
   buildIndex(); status('')
   $('#q').disabled = false; $('#q').placeholder = 'e.g. tabari tarikh'
   $('#q').oninput = showResults
   $('#q').onkeydown = e => { if (e.key === 'Enter') { const a = $('#results-list a'); if (a) navigate(a.getAttribute('href')) } }
-  if (!location.search) UI.fold(false)
-  await route()
+  $('#help-howto').innerHTML = $('#howto').innerHTML
+  const tq = new URLSearchParams(location.search)
+  if (!(tq.get('tour') && await TOURS.start(tq.get('tour'), Number(tq.get('stop')) || 1))) { if (!location.search) UI.fold(false); await route() }
   S.ready = true
 }
 init()

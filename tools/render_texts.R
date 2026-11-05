@@ -8,6 +8,7 @@
 # Not needed to run the app.
 # Usage: Rscript tools/render_texts.R <folder with the extracted .md files>
 args <- commandArgs(trailingOnly = TRUE); src <- sub("/?$", "/", args[1])
+codes <- c(B = "BIO", E = "EXE", G = "GRE", H = "HIS", F = "LEG", L = "LNG", M = "MED", P = "POE", "Ḥ" = "TRD", K = "SCH", U = "UND")
 for (f in c("intro_short", "assessment_book", "assessment_rolling", "assessment_rolling_ent", "assessment_author", "tfidf_comps", "comparables")) {
   md <- paste(readLines(paste0(src, f, ".md"), encoding = "UTF-8", warn = FALSE), collapse = "\n")
   if (f == "tfidf_comps") { stopifnot(grepl("top 1,500 matches", md, fixed = TRUE), grepl("`distance`", md, fixed = TRUE))
@@ -15,6 +16,7 @@ for (f in c("intro_short", "assessment_book", "assessment_rolling", "assessment_
   if (f == "assessment_book") { md <- sub("given in the section below", "given in the tab Through the text", md, fixed = TRUE) }
   if (f == "assessment_book") { stopifnot(grepl("(dark green shape)", md, fixed = TRUE), grepl("(yellow shape)", md, fixed = TRUE), grepl("Red shape", md, fixed = TRUE))
     md <- sub("(dark green shape)", "(blue)", md, fixed = TRUE); md <- sub("(yellow shape)", "(orange)", md, fixed = TRUE); md <- sub("Red shape", "Green", md, fixed = TRUE) }
+  if (f == "comparables") for (k in names(codes)) md <- gsub(paste0("`[", k, "]`"), paste0("`[", codes[[k]], "]`"), md, fixed = TRUE)   # three-letter codes, as on screen
   if (f == "assessment_rolling") { old <- "light thin green line denoted the complete lack of the signal, while dark thick line shows varying degrees of the signal"; stopifnot(grepl(old, md, fixed = TRUE))
     md <- sub(old, "a flat line denotes the complete lack of the signal, while the filled area shows varying degrees of the signal", md, fixed = TRUE) }
   if (f %in% c("assessment_rolling", "assessment_rolling_ent")) md <- sub("The graph below", "The graph above", md, fixed = TRUE)

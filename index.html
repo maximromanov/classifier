@@ -19,6 +19,13 @@
 <div class="shell">
 <aside id="panel" aria-label="Find a book or author">
   <div class="panel-head"><h2>Find</h2><button type="button" id="hide-panel">« Hide panel</button></div>
+  <div id="howto" class="howto"><h2>How to use</h2><ol>
+    <li><b>Find a book or author:</b> search by title, name, Arabic, or URI.</li>
+    <li><b>Overview:</b> how the whole book scores on ten types of texts, from chronicles to poetry.</li>
+    <li><b>Through the text:</b> how that mix changes from beginning to end; lines mark the book's chapters.</li>
+    <li><b>Similar books</b> and <b>Author:</b> its closest neighbors, and the author's other works.</li>
+    <li><b>Share or cite:</b> “Copy link” and “Cite these results”, as in NgramReader.</li>
+  </ol><p><button type="button" class="primary" data-tour="nujum">Take the guided tour →</button></p></div>
   <label for="q" class="note">Title, author, Arabic or URI</label>
   <input type="search" id="q" autocomplete="off" disabled placeholder="Loading …">
   <div id="results-list"></div>
@@ -91,7 +98,8 @@
 
 <dialog id="help-dialog" aria-label="Help"><button type="button" class="close" data-close aria-label="Close">×</button><h2>About and instructions</h2>
   <div id="help-intro"></div>
-  <h3>How to use</h3>
+  <div id="help-howto" class="howto"></div>
+  <h3>More detail</h3>
   <ul>
     <li>Type a few letters of a title, an author's name (in transliteration or Arabic) or an OpenITI URI into the search box; matching ignores case and diacritics (“tabari tarikh” finds <i>Taʾrīḫ al-rusul wa-l-mulūk</i> of al-Ṭabarī). Choose a book or an author.</li>
     <li>A <b>book profile</b> has five tabs: the book's typology as a whole (bars or the classic radar, and top types), its typology and entropy along the text, its entropy against all books, its nearest books by vocabulary (TF-IDF), and its author.</li>

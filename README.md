@@ -34,6 +34,21 @@ The data behind every view was compared with the outputs of the deployed R app's
 
 All text, in the interface and the charts, is `Brill`, with `Noto Serif` as the fallback: no web font exists for Brill, so machines without it show Noto Serif. Arabic is Amiri (Google Fonts). In exported images the text uses the fonts installed on the machine.
 
+## Guided tours
+
+Tours are data: `tours/tours.json`. Editing or adding a tour needs no change to the code. The tours open from the button on the start page and in Help (`data-tour="<id>"`), or by a link: `?tour=<id>&stop=<n>`.
+
+```json
+{ "tours": [ { "id": "…", "title": "…", "stops": [
+  { "title": "…", "text": "First paragraph.\nSecond paragraph.", "state": { … }, "continue": { "label": "…", "app": "classifier", "tour": "…" } }
+] } ] }
+```
+
+- `text`, `title`: `*…*` is italics, `` `…` `` is code, `\n` starts a new paragraph. In JSON a backslash is written twice (`\\w*`).
+- `continue` (optional): a link to a tour of the other app, opened in a new tab.
+- `state`: the view the stop opens, through the same code as a link. `panel` is `"open"` or `"closed"`.
+- `state` keys: `book` or `author` (URI), `t` tab (`overview`, `text`, `entropy`, `similar`, `author`; for an author `a-overview`, `a-books`), `h` header levels on (`""`, `"1"`, `"2"`, `"12"`), `v: "radar"` classic radar on the book overview, `a` author chart (`"books"`, `"radar"`). Keys left out take the default.
+
 ## Development
 
 Run both apps and the local data copy from one server (Node, nothing to install; it supports HTTP Range requests):

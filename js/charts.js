@@ -1,6 +1,6 @@
 // Book Classifier charts, drawn from the views of compute.js with the shared chart kit (chartkit.js): style, in-chart
 // captions, exports.
-import { plot, styleOf, narrow, typeBars, shortType, byType, STYLES, GRID, AXIS, MUTED } from './chartkit.js'
+import { plot, styleOf, narrow, typeBars, shortType, byType, typeLabel, STYLES, GRID, AXIS, MUTED } from './chartkit.js'
 
 // ---- radars ------------------------------------------------------------------------------------------------------
 const ring = (theta, r, a) => ({ type: 'scatterpolar', r: theta.map(() => r), theta, fill: 'toself', fillcolor: `rgba(200,200,200,${a})`, line: { color: 'rgba(0,0,0,0)' }, mode: 'lines', hoverinfo: 'skip', showlegend: false })
@@ -10,14 +10,14 @@ const polarLayout = (range, legend) => ({ margin: { b: 30, l: narrow() ? 75 : 40
   polar: { domain: { x: [0, 1], y: [0, 0.96] }, radialaxis: { visible: true, range, tickfont: { size: 11 } }, angularaxis: { tickfont: { size: narrow() ? 9 : 12 } } } })
 
 export async function radarBookChart(el, view, { caption, filename }) {
-  const theta = view.rows.map(r => axisName(r.type))                     // full type names on the axes
+  const theta = view.rows.map(r => axisName(typeLabel(r.type)))          // full type names on the axes
   const traces = [ring(theta, 0.8, 0.2), ring(theta, 0.6, 0.4), ring(theta, 0.4, 0.6), layer(theta, view.rows.map(r => r.period), 'Typology within 100 lunar years', STYLES[2])]
   if (view.hasRolling) traces.push(layer(theta, view.rows.map(r => r.rolling), 'Rolling Assessment', STYLES[1]))
   traces.push(layer(theta, view.rows.map(r => r.complete), 'Complete Text Assessment', STYLES[0]))
   await plot(el, traces, polarLayout([-0.1, 1], true), caption, filename)
 }
 export async function radarAuthorChart(el, view, { caption, filename }) {
-  const theta = view.rows.map(r => axisName(r.type)), traces = []
+  const theta = view.rows.map(r => axisName(typeLabel(r.type))), traces = []
   if (view.max > 0.8) traces.push(ring(theta, 0.8, 0.2)); if (view.max > 0.6) traces.push(ring(theta, 0.6, 0.4)); if (view.max > 0.4) traces.push(ring(theta, 0.4, 0.6))
   traces.push(layer(theta, view.rows.map(r => r.final), 'complete', STYLES[0]))
   await plot(el, traces, polarLayout([-0.1, view.max], false), caption, filename)
@@ -42,7 +42,7 @@ export async function topTypesChart(el, top, { caption, filename }) {
 }
 // all books at a glance: one column per book, one row per type; darker = higher score
 export async function allBooksChart(el, m, { caption, filename }) {
-  const y = m.types.map(t => (narrow() ? shortType(t.type) : t.type)), st = STYLES[0]
+  const y = m.types.map(t => (narrow() ? shortType(typeLabel(t.type)) : typeLabel(t.type))), st = STYLES[0]
   await plot(el, [{ type: 'heatmap', x: m.books.map((_, i) => i), y, z: m.types.map(t => m.books.map(b => b.scores[t.class])), text: m.types.map(() => m.books.map(b => b.label)), zmin: 0, zmax: 1, xgap: m.books.length > 300 ? 0 : 1, ygap: 1,
     colorscale: [[0, '#ffffff'], [0.25, `rgba(${st.rgb},0.3)`], [1, '#123c63']], colorbar: { thickness: 10, len: 0.8, outlinewidth: 0, title: { text: 'score', font: { size: 12 } }, tickfont: { size: 11 } }, hovertemplate: '%{text}<br>%{y}: %{z:.3f}<extra></extra>' }],
   { margin: { l: narrow() ? 112 : 240, r: 16, b: 46 }, showlegend: false, hovermode: 'closest', plotHeight: 340, xaxis: { showticklabels: false, showgrid: false, zeroline: false, ticks: '', fixedrange: true, title: { text: `${m.books.length.toLocaleString('en')} book${m.books.length === 1 ? '' : 's'}, grouped by top type`, font: { size: 12 } } },
@@ -72,9 +72,9 @@ export async function rollingChart(el, series, { caption, filename, shapes, rang
   series.forEach((s, j) => {
     const base = d.x.map(() => pos(s)), y1 = d.ys[j].map(v => v + pos(s))
     traces.push({ type: 'scatter', x: d.x, y: base, mode: 'lines', line: { color: '#d6d6d6', width: 0.8 }, hoverinfo: 'skip', showlegend: false })
-    traces.push({ type: 'scatter', x: d.x, y: y1, mode: 'lines', fill: 'tonexty', fillcolor: `rgba(${st.rgb},0.6)`, line: { color: st.color, width: 0.8 }, showlegend: false, customdata: d.ys[j], hovertemplate: `${s.classLabel}<br>window from token %{x:,}<br>score %{customdata:.4f}<extra></extra>` })
+    traces.push({ type: 'scatter', x: d.x, y: y1, mode: 'lines', fill: 'tonexty', fillcolor: `rgba(${st.rgb},0.6)`, line: { color: st.color, width: 0.8 }, showlegend: false, customdata: d.ys[j], hovertemplate: `${typeLabel(s.classLabel)}<br>window from token %{x:,}<br>score %{customdata:.4f}<extra></extra>` })
   })
-  await plot(el, traces, alongText(range, { plotHeight: TYPE_PLOT, showlegend: false, shapes, yaxis: { tickvals: series.map(pos), ticktext: series.map(s => (narrow() ? s.classLabel.slice(0, 3) : s.classLabel)), tickfont: { size: 12 }, zeroline: false, showgrid: false, fixedrange: true } }), caption, filename)
+  await plot(el, traces, alongText(range, { plotHeight: TYPE_PLOT, showlegend: false, shapes, yaxis: { tickvals: series.map(pos), ticktext: series.map(s => (narrow() ? typeLabel(s.classLabel).slice(0, 5) : typeLabel(s.classLabel))), tickfont: { size: 12 }, zeroline: false, showgrid: false, fixedrange: true } }), caption, filename)
   return { downsampled: !!k, binSize: k ?? 1 }
 }
 export async function entropyLineChart(el, rows, { caption, filename, shapes, range }) {
@@ -90,12 +90,12 @@ const HI = STYLES[1]
 export async function boxTypesChart(el, view, { caption, filename }) {
   const traces = [], levels = [...view.levels].sort(byType).reverse()      // the common order, read from the top
   view.groups.forEach(g => {
-    traces.push({ type: 'box', orientation: 'h', x: g.values, y: g.values.map(() => g.classLabel), name: g.classLabel, boxpoints: false, fillcolor: g.selected ? `rgba(${HI.rgb},0.55)` : 'rgba(0,0,0,0.3)', line: { color: 'black', width: 1 }, showlegend: false, hoverinfo: 'x' })
+    traces.push({ type: 'box', orientation: 'h', x: g.values, y: g.values.map(() => typeLabel(g.classLabel)), name: typeLabel(g.classLabel), boxpoints: false, fillcolor: g.selected ? `rgba(${HI.rgb},0.55)` : 'rgba(0,0,0,0.3)', line: { color: 'black', width: 1 }, showlegend: false, hoverinfo: 'x' })
     traces.push({ type: 'scatter', mode: 'markers', x: g.values, y: g.values.map((_, i) => levels.indexOf(g.classLabel) + jit(i + 1, 0.5)), yaxis: 'y2', marker: { color: 'rgba(0,0,0,0.25)', size: 3 }, hoverinfo: 'skip', showlegend: false })
   })
   const n = levels.length
   await plot(el, traces, { margin: { l: narrow() ? 92 : 240, r: 14, b: 56 }, showlegend: false, height: 600, exportHeight: { slide: 900, paper: 1100 },
-    yaxis: { type: 'category', categoryorder: 'array', categoryarray: levels, range: [-0.5, n - 0.5], tickfont: { size: narrow() ? 9 : 12 } }, yaxis2: { overlaying: 'y', range: [-0.5, n - 0.5], visible: false },
+    yaxis: { type: 'category', categoryorder: 'array', categoryarray: levels.map(typeLabel), range: [-0.5, n - 0.5], tickfont: { size: narrow() ? 9 : 12 } }, yaxis2: { overlaying: 'y', range: [-0.5, n - 0.5], visible: false },
     xaxis: { title: { text: view.col, font: { size: 12 } }, gridcolor: GRID, zeroline: false },
     shapes: [{ type: 'line', xref: 'x', yref: 'paper', x0: view.value, x1: view.value, y0: 0, y1: 1, line: { color: HI.color, width: 2 } }] }, caption, filename)
 }
