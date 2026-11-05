@@ -46,6 +46,7 @@ Tours are data: `tours/tours.json`. Editing or adding a tour needs no change to 
 
 - `text`, `title`: `*…*` is italics, `` `…` `` is code, `\n` starts a new paragraph. In JSON a backslash is written twice (`\\w*`).
 - `continue` (optional): a link to a tour of the other app, opened in a new tab.
+- `highlight` (optional): a CSS selector; the element gets a ring while the stop is open, e.g. `"#lines .line input"`.
 - `state`: the view the stop opens, through the same code as a link. `panel` is `"open"` or `"closed"`.
 - `state` keys: `book` or `author` (URI), `t` tab (`overview`, `text`, `entropy`, `similar`, `author`; for an author `a-overview`, `a-books`), `h` header levels on (`""`, `"1"`, `"2"`, `"12"`), `v: "radar"` classic radar on the book overview, `a` author chart (`"books"`, `"radar"`). Keys left out take the default.
 
