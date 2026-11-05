@@ -18,7 +18,7 @@
         },
         {
           "title": "Overview",
-          "text": "As a whole text, the book scores as biographical. Read window by window, the picture is more mixed: legal, Tradition-based and theological types appear beside it.",
+          "text": "As a whole text, the book scores 100% biographical. Read window by window, only about 40% is: legal, Tradition-based and theological types appear beside it.",
           "state": {
             "book": "0597IbnJawzi.TalbisIblis",
             "panel": "closed"
@@ -27,7 +27,7 @@
         },
         {
           "title": "Through the text",
-          "text": "Each point is a window of about 3,000 words, stepped along the text.\nNo single type holds throughout: the leading type changes as the book moves on.",
+          "text": "Each point is a window of about 3,000 words, stepped along the text.\nThe leading type keeps changing: as Ibn al-Jawzī moves from subject to subject, the kind of writing changes too.",
           "state": {
             "book": "0597IbnJawzi.TalbisIblis",
             "t": "text",
@@ -38,7 +38,7 @@
         },
         {
           "title": "Through the text, with headers",
-          "text": "The black lines are the book's level-1 headers: the introduction and its thirteen chapters. The shifts follow them: chapters 1–3 score as Tradition-based, chapter 5, on beliefs, as theological, chapters 6–8 as legal, and chapter 10, on the Sufis, as biographical.\nDashed lines would mean headers from a not yet fully annotated version.",
+          "text": "The black lines mark the book's chapters, and the changes follow them. The opening chapters read as Tradition-based: their argument is built from ḥadīṯ reports. Chapters 6–8, on scholars, authorities and worshipers, read as legal.\nChapter 10, the long critique of Ṣūfī practices, reads as biographical: its anecdotes resemble those of biographical collections.",
           "state": {
             "book": "0597IbnJawzi.TalbisIblis",
             "t": "text",
@@ -48,6 +48,20 @@
           "highlight": [
             "#hdr-ctl",
             "#chart-rolling"
+          ]
+        },
+        {
+          "title": "Inside one chapter",
+          "text": "Chapter 5 shows the same thing on a small scale. On beliefs and doctrines it reads as scholastic-theological; on the idol-worshipers of the *jāhiliyyaŧ*, as historical; on the Ḫārijites and the Šīʿaŧ, as biographical.\nThe added lines are the level-2 headers, the chapter's sections.",
+          "state": {
+            "book": "0597IbnJawzi.TalbisIblis",
+            "t": "text",
+            "h": "12",
+            "panel": "closed"
+          },
+          "highlight": [
+            "#chart-rolling",
+            "#hdr-ctl"
           ]
         },
         {
