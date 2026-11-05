@@ -127,7 +127,7 @@ async function renderBook(uri) {
   document.title = `${bookTitleText(uri).replace(/\*/g, '')} — ${APP.name}`
   const link = P.linkOf(uri), top = P.booksClassified.filter(b => b.bookURI === uri).map(b => typeLabel(b.comparables)).join('; ')
   $('#what').innerHTML = `<h1>${bookTitleHTML(uri)}</h1><div class="line2">${l?.titleAR || l?.authorAR ? `<span>${ar(l?.titleAR)}${l?.titleAR && l?.authorAR ? ' · ' : ''}${ar(l?.authorAR)}</span>` : ''}<a href="${authorHref(author)}" data-nav>${esc(authorNameText(author))}</a><code>${esc(uri)}</code><span>Top type: <b>${esc(top)}</b></span>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">Text in release 2023.1.8 ↗</a>` : ''}</div>${l?.ambiguous === '1' && l.ambiguousNote ? `<div class="note">Label flagged as uncertain: ${esc(l.ambiguousNote)}</div>` : ''}`
-  S.view = { kind: 'book', bookURI: uri, authorURI: author, stem: `Classifier_${uri}`, files: {}, ...chartChoice() }
+  S.view = { kind: 'book', bookURI: uri, authorURI: author, stem: `Classifier_${uri}`, files: {}, ...chartChoice(), headerList: S.wanted?.headerList }
   const rows = await bookRows(id); S.timing.data = performance.now() - t0
   const V = S.view; Object.assign(V, { rollingRows: rows.rolling, entropyRows: rows.entropy, headers: rows.headers })
   // all view data first (the downloads hold every view); charts are drawn when their tab opens
@@ -208,7 +208,7 @@ function drawHeaderControls() {
   const d = $('#hdr-table'); d.hidden = !H.length
   if (H.length) { const nText = V.headerRows.filter(r => r.header !== 'header text not available').length
     d.querySelector('summary').textContent = `Headers in this book (${H.length}; with text ${nText})`
-    renderTable($('#tbl-headers'), V.headerRows, ['level', 'header', 'pos', 'Confirmed'], { rtl: ['header'], quick: V.headerLevels.length > 1 ? V.headerLevels.map(l => ({ label: `H${l}`, test: r => r.level === `H${l}` })) : [] }) }
+    renderTable($('#tbl-headers'), V.headerRows, ['level', 'header', 'pos', 'Confirmed'], { rtl: ['header'], quick: V.headerLevels.length > 1 ? V.headerLevels.map(l => ({ label: `H${l}`, test: r => r.level === `H${l}` })) : [], quickOn: V.headerLevels.length > 1 ? V.headerLevels.indexOf(V.headerList) : -1 }); d.open = !!V.headerList }
 }
 
 async function drawTab(id) {
@@ -324,11 +324,11 @@ async function versionLine() {
 const UI = panel({ onResize })
 const CITE = citeDialog(citation)
 // a tour stop: the state of tours.json, opened as a link is
-async function openStop({ panel, book, author, t, h, v, a, q }) {
+async function openStop({ panel, book, author, t, h, v, a, q, list }) {
   if (panel) UI.fold(panel === 'closed')
   const u = new URL(location.href), tour = u.searchParams.get('tour'), stop = u.searchParams.get('stop'); u.search = ''; u.hash = ''
   if (book) u.searchParams.set('book', book); if (author) u.searchParams.set('author', author); u.searchParams.set('tour', tour); u.searchParams.set('stop', stop)
-  history.replaceState(null, '', u); S.wanted = { tab: t, levels: h, bookChart: v, authorChart: a }; await route()
+  history.replaceState(null, '', u); S.wanted = { tab: t, levels: h, bookChart: v, authorChart: a, headerList: list }; await route()
   $('#q').value = q ?? ''; showResults()
 }
 const TOURS = createTours({ open: openStop, links: {} })

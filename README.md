@@ -48,7 +48,7 @@ Tours are data: `tours/tours.json`. Editing or adding a tour needs no change to 
 - `continue` (optional): a link to a tour of the other app, opened in a new tab.
 - `highlight` (optional): a CSS selector, or a list of them with the main one first; these elements get a blinking frame while the stop is open, e.g. `"#lines .line input"`. Removing it removes the frame.
 - `state`: the view the stop opens, through the same code as a link. `panel` is `"open"` or `"closed"`.
-- `state` keys: `q` text typed into the search box, `book` or `author` (URI; without either, the start page), `t` tab (`overview`, `text`, `entropy`, `similar`, `author`; for an author `a-overview`, `a-books`), `h` header levels on (`""`, `"1"`, `"2"`, `"12"`), `v: "radar"` classic radar on the book overview, `a` author chart (`"books"`, `"radar"`). Keys left out take the default.
+- `state` keys: `q` text typed into the search box, `book` or `author` (URI; without either, the start page), `t` tab (`overview`, `text`, `entropy`, `similar`, `author`; for an author `a-overview`, `a-books`), `h` header levels on (`""`, `"1"`, `"2"`, `"12"`), `v: "radar"` classic radar on the book overview, `a` author chart (`"books"`, `"radar"`), `list: 1` opens the table of headers filtered to that level (tour stops only). Keys left out take the default.
 
 ## Development
 

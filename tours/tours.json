@@ -38,14 +38,16 @@
         },
         {
           "title": "Through the text, with headers",
-          "text": "The black lines mark the book's chapters, and the changes follow them. The opening chapters read as Tradition-based: their argument is built from ḥadīṯ reports. Chapters 6–8, on scholars, authorities and worshipers, read as legal.\nChapter 10, the long critique of Ṣūfī practices, reads as biographical: its anecdotes resemble those of biographical collections.",
+          "text": "The black lines mark the book's chapters, listed in the table below, and the changes follow them. The opening chapters read as Tradition-based: their argument is built from ḥadīṯ reports. Chapters 6–8, on scholars, authorities and worshipers, read as legal.\nChapter 10, the long critique of Ṣūfī practices, reads as biographical: its anecdotes resemble those of biographical collections.",
           "state": {
             "book": "0597IbnJawzi.TalbisIblis",
             "t": "text",
             "h": "1",
-            "panel": "closed"
+            "panel": "closed",
+            "list": 1
           },
           "highlight": [
+            "#hdr-table",
             "#hdr-ctl",
             "#chart-rolling"
           ]
