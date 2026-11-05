@@ -7,32 +7,63 @@
         {
           "title": "Overview",
           "text": "The whole book scores highest as a chronicle. Read window by window, a smaller biographical component appears.",
-          "state": { "book": "0874IbnTaghribirdi.NujumZahira", "panel": "closed" }
+          "state": {
+            "book": "0874IbnTaghribirdi.NujumZahira",
+            "panel": "closed"
+          },
+          "highlight": "#chart-bars"
         },
         {
           "title": "Through the text",
           "text": "Each point is a window of about 3,000 words, stepped along the text.\nMost windows read as chronicle, but biographical passages take the lead again and again, above all in the second half of the book.",
-          "state": { "book": "0874IbnTaghribirdi.NujumZahira", "t": "text", "h": "", "panel": "closed" }
+          "state": {
+            "book": "0874IbnTaghribirdi.NujumZahira",
+            "t": "text",
+            "h": "",
+            "panel": "closed"
+          },
+          "highlight": "#chart-rolling"
         },
         {
           "title": "Through the text, with headers",
           "text": "The black lines are the book's level-1 headers: they mostly mark the terms of the governors and the reigns of the sultans of Egypt.\nDashed lines would mean headers from a not yet fully annotated version.",
-          "state": { "book": "0874IbnTaghribirdi.NujumZahira", "t": "text", "h": "1", "panel": "closed" }
+          "state": {
+            "book": "0874IbnTaghribirdi.NujumZahira",
+            "t": "text",
+            "h": "1",
+            "panel": "closed"
+          },
+          "highlight": "#hdr-ctl"
         },
         {
           "title": "Entropy compared",
           "text": "Entropy measures how varied the vocabulary is. This book sits above most chronicles.",
-          "state": { "book": "0874IbnTaghribirdi.NujumZahira", "t": "entropy", "panel": "closed" }
+          "state": {
+            "book": "0874IbnTaghribirdi.NujumZahira",
+            "t": "entropy",
+            "panel": "closed"
+          },
+          "highlight": "#chart-entuni"
         },
         {
           "title": "Similar books",
           "text": "The works whose vocabulary is closest — mostly other chronicles.",
-          "state": { "book": "0874IbnTaghribirdi.NujumZahira", "t": "similar", "panel": "closed" }
+          "state": {
+            "book": "0874IbnTaghribirdi.NujumZahira",
+            "t": "similar",
+            "panel": "closed"
+          },
+          "highlight": "#tbl-tfidf tbody tr:nth-child(-n+5)"
         },
         {
           "title": "Author",
           "text": "Ibn Taġrībirdī also wrote a biographical dictionary, *al-Manhal al-ṣāfī*. Compare its profile: same author, different type.",
-          "state": { "book": "0874IbnTaghribirdi.NujumZahira", "t": "author", "panel": "closed" }
+          "state": {
+            "book": "0874IbnTaghribirdi.NujumZahira",
+            "t": "author",
+            "panel": "closed"
+          },
+          "highlight": "#tbl-author tbody tr:has(a[href*=ManhalSafi])"
         }
       ]
     }
