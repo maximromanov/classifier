@@ -324,11 +324,12 @@ async function versionLine() {
 const UI = panel({ onResize })
 const CITE = citeDialog(citation)
 // a tour stop: the state of tours.json, opened as a link is
-async function openStop({ panel, book, author, t, h, v, a }) {
+async function openStop({ panel, book, author, t, h, v, a, q }) {
   if (panel) UI.fold(panel === 'closed')
   const u = new URL(location.href), tour = u.searchParams.get('tour'), stop = u.searchParams.get('stop'); u.search = ''; u.hash = ''
   if (book) u.searchParams.set('book', book); if (author) u.searchParams.set('author', author); u.searchParams.set('tour', tour); u.searchParams.set('stop', stop)
   history.replaceState(null, '', u); S.wanted = { tab: t, levels: h, bookChart: v, authorChart: a }; await route()
+  $('#q').value = q ?? ''; showResults()
 }
 const TOURS = createTours({ open: openStop, links: {} })
 async function init() {
