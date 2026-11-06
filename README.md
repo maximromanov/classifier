@@ -56,7 +56,7 @@ Run both apps and the local data copy from one server (Node, nothing to install;
 
 ```
 cd /Users/romanov/MGR_PROJECTS/research/OPENITI_NGRAMREADER_2026
-node classifier_app-v1/tools/dev_server.mjs 8001 app-v1 classifier_app-v1 data_repos/ngramreader-data-2023.1.8-derived
+node apps/classifier/tools/dev_server.mjs 8001
 ```
 
 Then open http://localhost:8001/classifier/. The git-ignored `js/config.local.js` points the app at the local data; it is loaded only on localhost, and without it the app reads the pinned commit from GitHub:
