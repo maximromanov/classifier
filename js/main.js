@@ -313,7 +313,7 @@ const citation = () => { const V = S.view, y = CITATION.year, book = V.kind === 
 async function versionLine() {
   try {
     const cached = sessionStorage.getItem('cls-app-commit')
-    S.appCommit = cached || (DEV ? 'local' : (await (await fetch(`https://api.github.com/repos/${APP.repo}/commits/main`)).json()).sha?.slice(0, 7)) || null
+    S.appCommit = cached || (DEV ? DEV.appCommit ?? 'local' : (await (await fetch(`https://api.github.com/repos/${APP.repo}/commits/main`)).json()).sha?.slice(0, 7)) || null
     if (S.appCommit) sessionStorage.setItem('cls-app-commit', S.appCommit)
   } catch { S.appCommit = null }
   const c = dataCommit(S.release)

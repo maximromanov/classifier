@@ -35,6 +35,7 @@ export const LIBS = {
   compressors: 'https://cdn.jsdelivr.net/npm/hyparquet-compressors@1.1.2/+esm',
   plotly: 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@4.1.1/plotly.min.js',
   fflate: 'https://cdn.jsdelivr.net/npm/fflate@0.7.5/+esm',
+  ...DEV?.libs,                                            // the offline package bundles its own copies
 }
 
 export const dataBase = rel => DEV?.dataBase ?? `https://raw.githubusercontent.com/${rel.repo}/${rel.commit}/`

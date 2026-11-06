@@ -17,6 +17,7 @@ for (f in c("intro_short", "assessment_book", "assessment_rolling", "assessment_
   if (f == "assessment_book") { stopifnot(grepl("(dark green shape)", md, fixed = TRUE), grepl("(yellow shape)", md, fixed = TRUE), grepl("Red shape", md, fixed = TRUE))
     md <- sub("(dark green shape)", "(blue)", md, fixed = TRUE); md <- sub("(yellow shape)", "(orange)", md, fixed = TRUE); md <- sub("Red shape", "Green", md, fixed = TRUE) }
   if (f == "comparables") for (k in names(codes)) md <- gsub(paste0("`[", k, "]`"), paste0("`[", codes[[k]], "]`"), md, fixed = TRUE)   # three-letter codes, as on screen
+  if (f == "intro_short") md <- gsub("M10", "T10", md, fixed = TRUE)
   if (f == "assessment_rolling") { old <- "light thin green line denoted the complete lack of the signal, while dark thick line shows varying degrees of the signal"; stopifnot(grepl(old, md, fixed = TRUE))
     md <- sub(old, "a flat line denotes the complete lack of the signal, while the filled area shows varying degrees of the signal", md, fixed = TRUE) }
   if (f %in% c("assessment_rolling", "assessment_rolling_ent")) md <- sub("The graph below", "The graph above", md, fixed = TRUE)
