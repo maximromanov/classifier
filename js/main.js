@@ -1,6 +1,6 @@
 // OpenITI Book Classifier — page controller: search panel, book profile (?book=<bookURI>), author profile
 // (?author=<authorURI>), each with tabs. The active tab and header choices are in the hash (see share.js).
-import { APP, CITATION, SHOW_UNCONFIRMED_HEADERS, RELEASES, DEFAULT_RELEASE, dataBase, dataCommit, ngramreaderURL } from './config.js'
+import { APP, DEV, CITATION, SHOW_UNCONFIRMED_HEADERS, RELEASES, DEFAULT_RELEASE, dataBase, dataCommit, ngramreaderURL } from './config.js'
 import { loadStatic, readByKey } from './data.js'
 import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, authorBooksMatrix, authorTopTypes, undefinedWindow, headersTable, authorOfURI, TYPES } from './compute.js'
 import { radarBookChart, radarAuthorChart, bookBarsChart, rankedTypesChart, allBooksChart, topTypesChart, rollingChart, entropyLineChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
@@ -307,13 +307,13 @@ async function downloadAll() {
   saveBlob(await zipFiles(files), `${V.stem}_${stamp()}.zip`)
 }
 
-const citation = () => { const V = S.view, y = new Date().getFullYear(), book = V.kind === 'book'
+const citation = () => { const V = S.view, y = CITATION.year, book = V.kind === 'book'
   const title = book ? `Profile of *${(/\*([^*]+)\*/.exec(bookTitleText(V.bookURI)) ?? [0, bookTitleText(V.bookURI)])[1]}*` : `Profile of ${authorNameText(V.authorURI)}`
-  return { year: y, title, app: CITATION.title, version: CITATION.version, doi: CITATION.doi, data: CITATION.data, search: book ? `book ${V.bookURI}` : `author ${V.authorURI}`, accessed: today(), link: cleanLink(), key: `romanov${y}classifier` } }
+  return { year: y, title, app: CITATION.title, released: CITATION.released, version: CITATION.version, doi: CITATION.doi, data: CITATION.data, search: book ? `book ${V.bookURI}` : `author ${V.authorURI}`, accessed: today(), link: cleanLink(), key: `romanov${y}classifier` } }
 async function versionLine() {
   try {
     const cached = sessionStorage.getItem('cls-app-commit')
-    S.appCommit = cached || (location.hostname === 'localhost' ? 'local' : (await (await fetch(`https://api.github.com/repos/${APP.repo}/commits/main`)).json()).sha?.slice(0, 7)) || null
+    S.appCommit = cached || (DEV ? 'local' : (await (await fetch(`https://api.github.com/repos/${APP.repo}/commits/main`)).json()).sha?.slice(0, 7)) || null
     if (S.appCommit) sessionStorage.setItem('cls-app-commit', S.appCommit)
   } catch { S.appCommit = null }
   const c = dataCommit(S.release)
@@ -335,7 +335,7 @@ const TOURS = createTours({ open: openStop, links: {} })
 async function init() {
   versionLine(); dialogs()
   $('#link-other').href = ngramreaderURL()
-  const c = CITATION; $('#citation-block').innerHTML = `<b>Citation:</b> Romanov, Maxim. (${c.year}). <i>${esc(c.title)} (based on OpenITI, Release ver. 2023.1.8)</i> (Version ${c.version}) [Software]. Zenodo. <a href="https://doi.org/${c.doi}">https://doi.org/${c.doi}</a>`
+  const c = CITATION; $('#citation-block').innerHTML = `<b>Citation:</b> Romanov, Maxim. <i>${esc(c.title)}</i>. Zenodo, released ${c.released}. <a href="https://doi.org/${c.doi}">https://doi.org/${c.doi}</a>.`
   const help = e => { e.preventDefault(); $('#help-dialog').showModal() }
   $('#open-help').onclick = help; document.querySelectorAll('[data-help]').forEach(a => a.onclick = help)
   $('#cite').onclick = () => CITE.open()

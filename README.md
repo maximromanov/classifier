@@ -1,6 +1,6 @@
 # OpenITI Book Classifier (2.0)
 
-**ADHFAIS APP{ENDIX} 2: M10 Book Classification (OpenITI, Release ver. 2023.1.8)** — the book typology of the works in the OpenITI corpus of premodern Arabic texts, in the browser: https://maximromanov.github.io/classifier/
+**DHFAIS App{endix} 2: T10 Book Classification, Version 2 (based on OpenITI, Release ver. 2023.1.8)** — the book typology of the works in the OpenITI corpus of premodern Arabic texts, in the browser: https://maximromanov.github.io/classifier/
 
 This version runs entirely in the browser: plain HTML, CSS and JavaScript on GitHub Pages, with no server process and no build step. It is a rebuild of the R/Shiny Book Classifier as deployed in 2025 (10-type model M10). For the same book it shows the same numbers as the deployed R app (see *Agreement with the R app*). It is the companion of the [OpenITI NgramReader](https://maximromanov.github.io/ngramreader/), whose tables of books and authors link to the profiles here.
 
@@ -68,12 +68,12 @@ export default { dataBase: 'http://localhost:8001/data/', commit: '<local data c
 ## Releasing a new version
 
 1. On Zenodo, reserve the DOI of the new version.
-2. In `js/config.js`, set `CITATION.doi` to it (until then the concept DOI, `10.5281/zenodo.15663088`) and `CITATION.version`, `CITATION.year` as needed.
+2. In `js/config.js`, set `CITATION.doi`, `CITATION.released`, `CITATION.title` and `CITATION.year` as needed, and the same in `CITATION.cff`.
 3. Move the pinned data commit in `js/config.js` if the data changed (same commit as the NgramReader).
 
 ## Citation
 
-Romanov, Maxim. (2026). *ADHFAIS App{endix} 2: T10 Book Classification (based on OpenITI, Release ver. 2023.1.8)* (Version 2.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.15663088
+Romanov, Maxim. *DHFAIS App{endix} 2: T10 Book Classification, Version 2 (based on OpenITI, Release ver. 2023.1.8)*. Zenodo, released November 5, 2026. https://doi.org/10.5281/zenodo.23985062.
 
 ## License
 

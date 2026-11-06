@@ -1,4 +1,4 @@
-// The data behind every view, ported from the deployed R app (ADHFAIS APP{ENDIX} 2, functions_comps.R in
+// The data behind every view, ported from the deployed R app (DHFAIS App{endix} 2, formerly ADHFAIS, functions_comps.R in
 // adhfais_app2_local_10types.zip, 2025-06-14). Each function names the R code it follows. Plots are drawn from these
 // views (charts.js) and downloads write them (main.js), so what is shown, downloaded and verified is the same data.
 import { byType } from './chartkit.js'
