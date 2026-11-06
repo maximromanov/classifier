@@ -15,7 +15,7 @@ This version runs entirely in the browser: plain HTML, CSS and JavaScript on Git
 
 ## Data
 
-- **Repository:** [`maximromanov/ngramreader-data-2023.1.8`](https://github.com/maximromanov/ngramreader-data-2023.1.8), shared with the NgramReader, read through `raw.githubusercontent.com` at a pinned commit (`js/config.js`): **`8c89e50e2a646530f05c33a12055268e864d75d0`** (the same commit as the NgramReader).
+- **Repository:** [`maximromanov/ngramreader-data-2023.1.8`](https://github.com/maximromanov/ngramreader-data-2023.1.8), shared with the NgramReader, read through `raw.githubusercontent.com` at a pinned commit (`js/config.js`): **`7b082fba49e1d1f1ce0cf115adb657208bb4dfa1`** (the same commit as the NgramReader).
 - **Classifier tables** under `classifier/` (Parquet, sorted by `bookID`, with manifests; one book's rows are read by HTTP range requests): rolling type scores, rolling entropy, TF-IDF neighbours, headers, whole-text entropy. **Shared tables:** `data_BC/` (scores of the complete texts, author scores, type labels, book metadata), `derived/book_links.tsv` (release-pinned text links), `labels/` (readable working labels).
 - **Labels:** book titles and author names are working labels, generated with a language model, and may contain errors; the URI is authoritative.
 
