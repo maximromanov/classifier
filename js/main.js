@@ -299,7 +299,7 @@ async function downloadAll() {
     `Data: OpenITI release ${S.release.release}; data repository ${S.release.repo}, commit ${dataCommit(S.release)} (classifier/, data_BC/, labels/)`,
     `Downloaded: ${now.toISOString()} (${now.toString()})`,
     `Profile: ${V.kind === 'book' ? `book ${V.bookURI}` : `author ${V.authorURI}`}; page address: ${cleanLink()}`,
-    '', 'Cite as:', CITE.text('chicago').replace(/\*/g, ''),
+    '', 'Cite as:', CITE.text('chicago'),
     '', 'Book titles and author names (columns Book, Arabic) are working labels and may contain errors; the URI is authoritative.',
     '', 'Files (UTF-8, tab-separated, header row; character fields and column names in double quotes, embedded quotes doubled; NA = not available):',
     ...Object.entries(V.files).map(([n, f]) => `  ${n}.tsv: ${DESCR[n.replace(/_(unigrams|bigrams)$/, '')] ?? ''} Columns: ${f.cols.join(', ')}.`),

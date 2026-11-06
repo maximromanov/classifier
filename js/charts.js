@@ -45,8 +45,8 @@ export async function allBooksChart(el, m, { caption, filename }) {
   const y = m.types.map(t => (narrow() ? shortType(typeLabel(t.type)) : typeLabel(t.type))), st = STYLES[0]
   await plot(el, [{ type: 'heatmap', x: m.books.map((_, i) => i), y, z: m.types.map(t => m.books.map(b => b.scores[t.class])), text: m.types.map(() => m.books.map(b => b.label)), zmin: 0, zmax: 1, xgap: m.books.length > 300 ? 0 : 1, ygap: 1,
     colorscale: [[0, '#ffffff'], [0.25, `rgba(${st.rgb},0.3)`], [1, '#123c63']], colorbar: { thickness: 10, len: 0.8, outlinewidth: 0, title: { text: 'score', font: { size: 12 } }, tickfont: { size: 11 } }, hovertemplate: '%{text}<br>%{y}: %{z:.3f}<extra></extra>' }],
-  { margin: { l: narrow() ? 112 : 240, r: 16, b: 46 }, showlegend: false, hovermode: 'closest', plotHeight: 340, xaxis: { showticklabels: false, showgrid: false, zeroline: false, ticks: '', fixedrange: true, title: { text: `${m.books.length.toLocaleString('en')} book${m.books.length === 1 ? '' : 's'}, grouped by top type`, font: { size: 12 } } },
-    yaxis: { type: 'category', autorange: 'reversed', tickfont: { size: narrow() ? 11 : 12 }, showgrid: false, fixedrange: true } }, caption, filename)
+  { margin: { l: narrow() ? 122 : 240, r: 16, b: 46 }, showlegend: false, hovermode: 'closest', plotHeight: 340, xaxis: { showticklabels: false, showgrid: false, zeroline: false, ticks: '', fixedrange: true, title: { text: `${m.books.length.toLocaleString('en')} book${m.books.length === 1 ? '' : 's'}, grouped by top type`, font: { size: 12 } } },
+    yaxis: { type: 'category', autorange: 'reversed', ticks: '', tickfont: { size: narrow() ? 11 : 12 }, showgrid: false, fixedrange: true } }, caption, filename)
 }
 
 // ---- through the text: rolling type scores and rolling entropy on one x axis ------------------------------------------
@@ -85,17 +85,18 @@ export async function entropyLineChart(el, rows, { caption, filename, shapes, ra
 }
 
 // ---- entropy boxplots ---------------------------------------------------------------------------------------------
+const shown = t => (narrow() ? shortType(typeLabel(t)) : typeLabel(t))
 const jit = (i, w) => ((Math.sin(i * 12.9898) * 43758.5453) % 1) * w     // deterministic jitter (the R app's is random)
 const HI = STYLES[1]
 export async function boxTypesChart(el, view, { caption, filename }) {
   const traces = [], levels = [...view.levels].sort(byType).reverse()      // the common order, read from the top
   view.groups.forEach(g => {
-    traces.push({ type: 'box', orientation: 'h', x: g.values, y: g.values.map(() => typeLabel(g.classLabel)), name: typeLabel(g.classLabel), boxpoints: false, fillcolor: g.selected ? `rgba(${HI.rgb},0.55)` : 'rgba(0,0,0,0.3)', line: { color: 'black', width: 1 }, showlegend: false, hoverinfo: 'x' })
+    traces.push({ type: 'box', orientation: 'h', x: g.values, y: g.values.map(() => shown(g.classLabel)), name: shown(g.classLabel), boxpoints: false, fillcolor: g.selected ? `rgba(${HI.rgb},0.55)` : 'rgba(0,0,0,0.3)', line: { color: 'black', width: 1 }, showlegend: false, hoverinfo: 'x' })
     traces.push({ type: 'scatter', mode: 'markers', x: g.values, y: g.values.map((_, i) => levels.indexOf(g.classLabel) + jit(i + 1, 0.5)), yaxis: 'y2', marker: { color: 'rgba(0,0,0,0.25)', size: 3 }, hoverinfo: 'skip', showlegend: false })
   })
   const n = levels.length
-  await plot(el, traces, { margin: { l: narrow() ? 92 : 240, r: 14, b: 56 }, showlegend: false, height: 600, exportHeight: { slide: 900, paper: 1100 },
-    yaxis: { type: 'category', categoryorder: 'array', categoryarray: levels.map(typeLabel), range: [-0.5, n - 0.5], tickfont: { size: narrow() ? 9 : 12 } }, yaxis2: { overlaying: 'y', range: [-0.5, n - 0.5], visible: false },
+  await plot(el, traces, { margin: { l: narrow() ? 112 : 240, r: 14, b: 56 }, showlegend: false, height: 600, exportHeight: { slide: 900, paper: 1100 },
+    yaxis: { type: 'category', categoryorder: 'array', categoryarray: levels.map(shown), range: [-0.5, n - 0.5], tickfont: { size: narrow() ? 9 : 12 } }, yaxis2: { overlaying: 'y', range: [-0.5, n - 0.5], visible: false },
     xaxis: { title: { text: view.col, font: { size: 12 } }, gridcolor: GRID, zeroline: false },
     shapes: [{ type: 'line', xref: 'x', yref: 'paper', x0: view.value, x1: view.value, y0: 0, y1: 1, line: { color: HI.color, width: 2 } }] }, caption, filename)
 }
