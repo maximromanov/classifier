@@ -50,6 +50,11 @@ Tours are data: `tours/tours.json`. Editing or adding a tour needs no change to 
 - `state`: the view the stop opens, through the same code as a link. `panel` is `"open"` or `"closed"`.
 - `state` keys: `q` text typed into the search box, `book` or `author` (URI; without either, the start page), `t` tab (`overview`, `text`, `entropy`, `similar`, `author`; for an author `a-overview`, `a-books`), `h` header levels on (`""`, `"1"`, `"2"`, `"12"`), `v: "radar"` classic radar on the book overview, `a` author chart (`"books"`, `"radar"`), `list: 1` opens the table of headers filtered to that level (tour stops only). Keys left out take the default.
 
+## Changes
+
+- **2.1:** branded header band, icons, install as a web app (manifest; no service worker). Links of the first forms open with the corpus bars on, as they did.
+- **2.0:** redesign, guided tours, DHFAIS name and citations, one-commit data repository.
+
 ## Development
 
 Run both apps and the local data copy from one server (Node, nothing to install; it supports HTTP Range requests):

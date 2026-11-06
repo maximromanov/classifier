@@ -8,7 +8,7 @@ import { redraw, setShapes, exportBar, setTypeCodes, typeLabel } from './chartki
 import { createTours, cleanLink } from './tour.js'
 import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
-import { panel, tabs, dialogs, citeDialog, copyText, fontControls } from './ui.js'
+import { panel, tabs, dialogs, citeDialog, copyText, fontControls, bandMenu } from './ui.js'
 import { packState, unpackState } from './share.js'
 import { chartCitation } from './cite.js'
 
@@ -322,7 +322,7 @@ async function versionLine() {
 
 // ---- wiring -----------------------------------------------------------------------------------------------------------
 const UI = panel({ onResize })
-const CITE = citeDialog(citation)
+const CITE = citeDialog(() => (!S.view ? { whole: true, year: CITATION.year, app: CITATION.title, released: CITATION.released, doi: CITATION.doi, key: `romanov${CITATION.year}classifier` } : citation()))
 // a tour stop: the state of tours.json, opened as a link is
 async function openStop({ panel, book, author, t, h, v, a, q, list }) {
   if (panel) UI.fold(panel === 'closed')
@@ -338,7 +338,7 @@ async function init() {
   const c = CITATION; $('#citation-block').innerHTML = `<b>Citation:</b> Romanov, Maxim. <i>${esc(c.title)}</i>. Zenodo, released ${c.released}. <a href="https://doi.org/${c.doi}">https://doi.org/${c.doi}</a>.`
   const help = e => { e.preventDefault(); $('#help-dialog').showModal() }
   $('#open-help').onclick = help; document.querySelectorAll('[data-help]').forEach(a => a.onclick = help)
-  $('#cite').onclick = () => CITE.open()
+  $('#cite').onclick = () => CITE.open(); $('#band-cite').onclick = () => CITE.open(); bandMenu()
   $('#copy-link').onclick = async () => { await updateURL(); copyText(cleanLink(), 'Link copied') }
   $('#download-all').onclick = downloadAll
   $('#dl-tfidf').onclick = () => tsv('tfidf'); $('#dl-author').onclick = () => tsv('author_books'); $('#dl-abooks').onclick = () => tsv('author_books'); $('#dl-headers').onclick = () => tsv('headers')

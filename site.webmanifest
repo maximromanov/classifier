@@ -1,0 +1,16 @@
+{
+  "name": "OpenITI Book Classifier",
+  "short_name": "Classifier",
+  "description": "Book typology of the works in the OpenITI corpus of premodern Arabic texts (release 2023.1.8): complete-text and rolling assessments, entropy, TF-IDF neighbours, author profiles. In the browser.",
+  "id": "/classifier/",
+  "start_url": "/classifier/",
+  "scope": "/classifier/",
+  "display": "standalone",
+  "theme_color": "#b8560f",
+  "background_color": "#ffffff",
+  "icons": [
+    { "src": "brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "brand/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
