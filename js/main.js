@@ -8,7 +8,7 @@ import { redraw, setShapes, exportBar, setTypeCodes, typeLabel } from './chartki
 import { createTours, cleanLink } from './tour.js'
 import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
-import { panel, tabs, dialogs, citeDialog, copyText, fontControls, bandMenu } from './ui.js'
+import { panel, tabs, dialogs, citeDialog, copyText, fontControls, bandMenu, themeControl } from './ui.js'
 import { packState, unpackState } from './share.js'
 import { chartCitation } from './cite.js'
 
@@ -355,6 +355,7 @@ async function init() {
   exportBar($('#x-atop'), () => [$('#chart-atop')], () => tsv('author_top_types'))
   new ResizeObserver(onResize).observe($('#content'))
   fontControls(() => activeCharts().forEach(el => redraw(el)))
+  themeControl(() => activeCharts().forEach(el => redraw(el)))
   const [intro, comparables] = await Promise.all([text('intro_short'), text('comparables')])
   $('#intro-text').innerHTML = intro; $('#help-intro').innerHTML = intro; $('#comparables').innerHTML = comparables
   S.wanted = await readHash()

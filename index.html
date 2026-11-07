@@ -2,6 +2,7 @@
 <html lang="en" data-app="classifier">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpenITI Book Classifier</title>
 <meta name="description" content="Book typology of the works in the OpenITI corpus of premodern Arabic texts (release 2023.1.8): complete-text and rolling assessments, entropy, TF-IDF neighbours, author profiles. In the browser.">
@@ -24,12 +25,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap">
+<script>try{var t=localStorage.getItem('openiti-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <header class="site">
   <div class="brand"><a class="name" href="./" data-nav><img class="band-mark" src="brand/mark-classifier.svg" alt=""><span class="band-title">Book Classifier</span><span class="sub">DHFAIS App{endix} 2</span></a></div>
-  <nav id="band-nav" aria-label="Site"><a id="link-other" href="https://maximromanov.github.io/ngramreader/" target="_blank" rel="noopener">NgramReader</a><a href="https://brill.com/display/title/74416" target="_blank" rel="noopener">The book</a><a href="#" id="open-help">Help</a><button type="button" id="band-cite" class="band-link">Cite</button></nav>
+  <nav id="band-nav" aria-label="Site"><a id="link-other" href="https://maximromanov.github.io/ngramreader/" target="_blank" rel="noopener">NgramReader</a><a href="https://brill.com/display/title/74416" target="_blank" rel="noopener">The book</a><a href="#" id="open-help">Help</a><button type="button" id="band-cite" class="band-link">Cite</button><div class="seg theme-sw in-menu" role="group" aria-label="Color mode"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div></nav>
   <button type="button" id="band-menu" class="band-menu" aria-label="Menu" aria-expanded="false" aria-controls="band-nav"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false"><path d="M3 6 H21 M3 12 H21 M3 18 H21" stroke="#fff" stroke-width="2.6" fill="none"/></svg></button>
   <svg class="band-rule" viewBox="0 0 1478 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect x="0" width="147" height="8" fill="#e5b388"/><rect x="157" width="86" height="8" fill="#e5b388"/><rect x="253" width="205" height="8" fill="#e5b388"/><rect x="468" width="99" height="8" fill="#e5b388"/><rect x="577" width="182" height="8" fill="#e5b388"/><rect x="769" width="83" height="8" fill="#e5b388"/><rect x="862" width="133" height="8" fill="#e5b388"/><rect x="1005" width="208" height="8" fill="#e5b388"/><rect x="1223" width="91" height="8" fill="#e5b388"/><rect x="1325" width="153" height="8" fill="#e5b388"/></svg>
 </header>
@@ -53,7 +55,7 @@
 <div id="content">
   <div id="topbar">
     <div id="what"><span class="note">No book or author chosen.</span></div>
-    <div class="actions"><span class="fontsize" role="group" aria-label="Text size"><button type="button" id="font-minus" title="Smaller text" aria-label="Smaller text">−</button><button type="button" id="font-plus" title="Larger text" aria-label="Larger text">+</button></span><button type="button" id="cite" disabled>Cite these results</button><button type="button" id="copy-link" disabled>Copy link</button><button type="button" id="download-all" disabled>Download all (zip)</button></div>
+    <div class="actions"><div class="seg theme-sw in-row" role="group" aria-label="Color mode"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div><span class="fontsize" role="group" aria-label="Text size"><button type="button" id="font-minus" title="Smaller text" aria-label="Smaller text">−</button><button type="button" id="font-plus" title="Larger text" aria-label="Larger text">+</button></span><button type="button" id="cite" disabled>Cite these results</button><button type="button" id="copy-link" disabled>Copy link</button><button type="button" id="download-all" disabled>Download all (zip)</button></div>
   </div>
   <div id="tabs" role="tablist" aria-label="Views"></div>
   <div id="messages" role="alert"></div>
