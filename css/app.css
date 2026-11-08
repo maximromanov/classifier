@@ -173,6 +173,11 @@ tr.tour-spot { outline-offset: -3px; }
 .tour-dots i.on { background: var(--accent); }
 .tour-n { color: var(--muted); font-size: calc(12px + var(--fd)); white-space: nowrap; }
 @media (max-width: 599px) { #topbar { position: static; } .tour-spot { scroll-margin-top: 8px; } .tour-skip { min-height: 32px; top: 4px; } .tour-x { min-height: 32px; width: 32px; top: 4px; right: 2px; } #tour-card { left: 0; right: 0; bottom: 0; width: auto; max-height: 46vh; border-radius: 12px 12px 0 0; border-width: 1px 0 0; } body.touring { padding-bottom: 46vh; } }
+.book-cover { margin: 18px 0 6px; padding-top: 16px; border-top: 1px solid var(--line); }
+.book-cover img { display: block; width: 50%; height: auto; }
+:root[data-theme=dark] .book-cover img { border: 1px solid var(--line2); }
+.book-cover figcaption { margin-top: 8px; color: var(--muted); font-size: calc(13px + var(--fd)); line-height: 1.4; }
+@media (max-width: 899px) { .book-cover img { width: 33%; } }
 .tbl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 4px 0 6px; }
 .tbl-filter { font-size: calc(13px + var(--fd)); padding: 4px 8px; flex: 1 1 200px; min-width: 0; max-width: 360px; }
 sup.uncertain { color: var(--muted); cursor: help; margin-left: 2px; }
