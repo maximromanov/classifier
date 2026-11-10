@@ -4,6 +4,10 @@ const apaDate = d => { const [md, y] = d.split(', '); return `${y}, ${md}` }    
 // asterisks of a search (\w*) are text, not italics: kept apart from the *…* markers until the citation is laid out
 const lit = s => s.replace(/\*/g, '\uE002')
 export const unlit = s => s.replace(/\uE002/g, '*')
+// a part of a search (label or item) to be shown in its own direction: between these two markers; the dialog shows <bdi>,
+// every copied or downloaded text drops them (unIso)
+export const ISO = ['\uE003', '\uE004']
+export const unIso = s => s.replace(/[\uE003\uE004]/g, '')
 const plain = s => s.replace(/\*/g, '')
 const bib = s => plain(s).replace(/\\/g, '\\textbackslash{}').replace(/([&%$#_{}])/g, '\\$1')
 export const FORMATS = {

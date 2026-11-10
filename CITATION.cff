@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "DHFAIS App{endix} 2: T10 Book Classification, Version 2 (based on OpenITI, Release ver. 2023.1.8)"
-version: "2.02"
+version: "2.03"
 date-released: 2026-11-05
 doi: 10.5281/zenodo.23985062
 authors:

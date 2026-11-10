@@ -47,7 +47,7 @@
     <li><b>Share or cite:</b> “Copy link” and “Cite these results”, as in NgramReader.</li>
   </ol><p><button type="button" class="primary" data-tour="talbis">Take the guided tour →</button></p></div>
   <label for="q" class="note">Title, author, Arabic or URI</label>
-  <input type="search" id="q" autocomplete="off" disabled placeholder="Loading …">
+  <div class="q-row"><input type="search" id="q" dir="auto" autocomplete="off" disabled placeholder="Loading …"></div>
   <div id="results-list"></div>
   <!-- book-cover: Brill's image, kept out of the Zenodo packages (tools/release/build_zips.py) -->
   <figure class="book-cover"><a href="https://brill.com/display/title/74416" target="_blank" rel="noopener"><img src="brand/book-cover.jpg" width="308" height="479" loading="lazy" alt="Digital Humanities for Arabic and Islamic Studies: A Proposition for the Field"></a><figcaption>An appendix to <a href="https://brill.com/display/title/74416" target="_blank" rel="noopener"><i>Digital Humanities for Arabic and Islamic Studies</i></a> (Brill, 2026)</figcaption></figure>
@@ -117,6 +117,7 @@
     <img src="img/eis1600_SMALL_mix_blue_white.png" alt="EIS1600" height="50"><img src="img/OpenITI_Logo_SQ.png" alt="OpenITI" height="50"><img src="img/ERC_logo_SQ.png" alt="ERC" height="50"><img src="img/KITAB_UHH_DFG_COLORS.png" alt="KITAB" height="50"><img src="img/EN_DFG_COLORS.png" alt="DFG Emmy Noether" height="50"><img src="img/rm-mark.png" alt="Maxim Romanov" height="50">
   </p>
   <p id="version" class="version"></p>
+  <p class="credit">The Arabic keyboard and regex editor are adapted, with permission, from Peter Verkinderen's <a href="https://github.com/pverkind/arabicVirtualKeyboard">Arabic Virtual Keyboard</a>, itself based on Ahmad Ismail's <a href="http://www.arabic-keyboard.org/">Arabic keyboard</a>.</p>
 </footer>
 
 <dialog id="help-dialog" aria-label="Help"><button type="button" class="close" data-close aria-label="Close">×</button><h2>About and instructions</h2>
@@ -124,7 +125,7 @@
   <div id="help-howto" class="howto"></div>
   <h3>More detail</h3>
   <ul>
-    <li>Type a few letters of a title, an author's name (in transliteration or Arabic) or an OpenITI URI into the search box; matching ignores case and diacritics (“tabari tarikh” finds <i>Taʾrīḫ al-rusul wa-l-mulūk</i> of al-Ṭabarī). Choose a book or an author.</li>
+    <li>Type a few letters of a title, an author's name (in transliteration or Arabic) or an OpenITI URI into the search box; matching ignores case and diacritics (“tabari tarikh” finds <i>Taʾrīḫ al-rusul wa-l-mulūk</i> of al-Ṭabarī). Choose a book or an author. For Arabic, <i>⌨ Arabic</i> beside the search box opens an Arabic keyboard.</li>
     <li>A <b>book profile</b> has five tabs: the book's typology as a whole (bars or the classic radar, and top types), its typology and entropy along the text, its entropy against all books, its nearest books by vocabulary (TF-IDF), and its author.</li>
     <li>An <b>author profile</b> shows the author's typology over all their books (<i>Types</i>; <i>All books</i>, one column per book; <i>Classic (radar)</i>), the books by top type and the list of the books. A chart's choice is part of the page address.</li>
     <li>Profiles have their own addresses, <code>?book=&lt;bookURI&gt;</code> and <code>?author=&lt;authorURI&gt;</code>; the NgramReader links to them from its tables of books and authors. The active tab is part of the page address.</li>

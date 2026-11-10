@@ -18,7 +18,7 @@ export const DEV = /^(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2\d|3[
 export const APP = {
   name: 'OpenITI Book Classifier',
   title: 'DHFAIS App{endix} 2: T10 Book Classification, Version 2 (based on OpenITI, Release ver. 2023.1.8)',
-  version: '2.02',
+  version: '2.03',
   repo: 'maximromanov/classifier',
   ngramreader: 'https://maximromanov.github.io/ngramreader/',
 }

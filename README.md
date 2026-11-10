@@ -6,7 +6,7 @@ This version runs entirely in the browser: plain HTML, CSS and JavaScript on Git
 
 ## What it shows
 
-- **Search** over readable titles, author names, Arabic and URIs (case and diacritics ignored).
+- **Search** over readable titles, author names, Arabic and URIs (case and diacritics ignored). *⌨ Arabic* beside the search box opens an Arabic keyboard.
 - **Book profile** (`?book=<bookURI>`), with tabs: **Overview** (radar with three layers: complete text, mean of the rolling windows, types of books within ±50 years; top types); **Through the text** (rolling type scores and, below them, rolling entropy, as two aligned figures, with section headers H1 and H2: H1 on by default; solid lines for annotated versions, dashed for others; collapsed headers table); **Entropy compared** (boxplots across all types and within the book's type over time); **Similar books** (TF-IDF neighbours, top 250, with similarity); **Author** (author radar and books).
 - **Author profile** (`?author=<authorURI>`), with tabs **Overview** (name, Arabic, death date, author radar) and **Books**.
 - **Top bar:** what the page shows, with *Cite these results* (Chicago, APA, BibTeX, RIS), *Copy link* and *Download all*. The active tab and header choices are in the link (`#2…`).
@@ -52,6 +52,7 @@ Tours are data: `tours/tours.json`. Editing or adding a tour needs no change to 
 
 ## Changes
 
+- **2.03:** Arabic keyboard for the search box, adapted from Peter Verkinderen's Arabic Virtual Keyboard (as in the NgramReader, where v2.03 brings search fields for mixed Arabic/Latin input and the Arabic regex editor); website only, not on Zenodo.
 - **2.02:** book cover in the search panel; website only, not on Zenodo.
 - **2.01:** branded header band, icons, install as a web app (manifest; no service worker); dark mode (Auto, Light, Dark; exports always light). Links of the first forms open with the corpus bars on, as they did.
 - **2.0:** redesign, guided tours, DHFAIS name and citations, one-commit data repository.
@@ -81,8 +82,12 @@ export default { dataBase: 'http://localhost:8001/data/', commit: '<local data c
 
 Romanov, Maxim. *DHFAIS App{endix} 2: T10 Book Classification, Version 2 (based on OpenITI, Release ver. 2023.1.8)*. Zenodo, released November 5, 2026. https://doi.org/10.5281/zenodo.23985062.
 
+The Arabic keyboard and regex editor are adapted, with permission, from Peter Verkinderen's [Arabic Virtual Keyboard](https://github.com/pverkind/arabicVirtualKeyboard), itself based on Ahmad Ismail's [Arabic keyboard](http://www.arabic-keyboard.org/).
+
 ## License
 
 Cover image © Brill; not covered by this repository's licenses.
+
+The files in [`vendor/arabicVirtualKeyboard/`](vendor/arabicVirtualKeyboard/) keep their origin: they are Peter Verkinderen's Arabic Virtual Keyboard (itself based on Ahmad Ismail's Arabic keyboard), adapted with his permission; see [`ORIGIN.md`](vendor/arabicVirtualKeyboard/ORIGIN.md) there. The original repository has no license file, so these files are not covered by this repository's MIT License.
 
 The code of this app is released under the MIT License; see [`LICENSE`](LICENSE). The data, in [`ngramreader-data-2023.1.8`](https://github.com/maximromanov/ngramreader-data-2023.1.8), are derived from OpenITI release 2023.1.8 (https://doi.org/10.5281/zenodo.10007820) and are under CC BY-NC-SA 4.0.

@@ -11,6 +11,7 @@ import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
 import { panel, tabs, dialogs, citeDialog, copyText, fontControls, bandMenu, themeControl } from './ui.js'
 import { packState, unpackState } from './share.js'
 import { chartCitation } from './cite.js'
+import { keyboardButton, cleanField } from './arkb.js'
 
 const $ = s => document.querySelector(s)
 const NO_DATA = 'No data for this text.'
@@ -48,7 +49,7 @@ function search(q) {
     nBooks: hits.filter(h => h.kind === 'book').length, nAuthors: hits.filter(h => h.kind === 'author').length }
 }
 function showResults() {
-  const q = $('#q').value, box = $('#results-list')
+  const q = cleanField($('#q').value), box = $('#results-list')
   if (!q.trim()) { box.innerHTML = ''; return }
   const r = search(q), cur = S.view?.bookURI ?? S.view?.authorURI
   box.innerHTML = r.total ? `
@@ -364,6 +365,7 @@ async function init() {
   S.loadMs = performance.now() - t0
   buildIndex(); status('')
   $('#q').disabled = false; $('#q').placeholder = 'e.g. tabari tarikh'
+  $('#q').after(keyboardButton($('#q'), { regex: false, what: 'Search: title, author, Arabic or URI' }))
   $('#q').oninput = showResults
   $('#q').onkeydown = e => { if (e.key === 'Enter') { const a = $('#results-list a'); if (a) navigate(a.getAttribute('href')) } }
   $('#help-howto').innerHTML = $('#howto').innerHTML

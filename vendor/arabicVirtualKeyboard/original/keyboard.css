@@ -1,0 +1,341 @@
+/* amiri-regular - latin-ext_arabic_latin */
+@font-face {
+    font-family: 'Amiri';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../fonts/amiri-v13-latin-ext_arabic_latin-regular.eot'); /* IE9 Compat Modes */
+    src: local('Amiri Regular'), local('Amiri-Regular'),
+url('../fonts/amiri-v13-latin-ext_arabic_latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+url('../fonts/amiri-v13-latin-ext_arabic_latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+url('../fonts/amiri-v13-latin-ext_arabic_latin-regular.woff') format('woff'), /* Modern Browsers */
+url('../fonts/amiri-v13-latin-ext_arabic_latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+url('../fonts/amiri-v13-latin-ext_arabic_latin-regular.svg#Amiri') format('svg'); /* Legacy iOS */
+}
+
+a {
+    text-decoration: none;
+    color: #666
+}
+a img {
+    border: 0
+}
+a:hover {
+    text-decoration: none
+}
+a:active {
+    outline: none
+}
+html,
+body {
+    font-size: 13px;
+    font-family: verdana, arial, helvetica, sans-serif;
+    height: 100%;
+    padding-left: 25;
+}
+* html button.btn {
+
+    padding-bottom: 1px
+}
+html:not([lang *= ""])
+
+h1 {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+h3 {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-right: 10px;
+}
+input {
+    padding: 1px;
+}
+p {
+    width: 450px;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 10px;
+}
+td,
+th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #70d4bb;
+}
+td:nth-child(1) {
+    width: 75px;
+}
+td:nth-child(2) {
+    width: 150px;
+}
+td:nth-child(3) {
+    width: 120px;
+}
+td:nth-child(4) {
+    width: 120px;
+}
+textarea {
+    resize: none;
+}
+
+
+
+.btn {
+    padding: 5px;
+    margin-right: 2px;
+    margin-bottom: 2px;
+    margin-top: 2px;
+}
+/* modal msgBox Close Button */
+.close {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+.extraInput {
+    width: 20px;
+    float: left;
+    margin: 0px 0px 10px 0px;
+}
+.extraInputDescr {
+    margin: 0px 0px 10px 5px;
+    width: 105px;
+    float: left;
+}
+.extraRow {
+    position: static;
+}
+.fivePxMargin {
+    margin: 5px 0px 5px 2px;
+}
+.footer {
+    padding-top: 40px;
+    padding-bottom: 10px;
+    font-size: 10px;
+    color: #999;
+    width: 450px;
+}
+.keyCharacter {
+    border-radius:3px;
+    background-color:white;
+    padding-top:1px;
+    text-align:center;
+    font-size: 18px;
+    box-shadow: inset 1px -1px 1px 1px rgba(0,0,0,0.62);
+    cursor: pointer;
+    height: 33px;
+    font-family: 'Amiri', serif;
+}
+.enter {
+    grid-row-start: 3;
+    grid-row-end: 5;
+    grid-column-start: 12;
+    grid-column-end: 12;
+    height: 68px;
+}
+.keyGrid {
+    display: inline-grid;
+    grid-template-columns: 34px 34px 34px 34px 34px 34px 34px 34px 34px 34px 34px 34px;
+    grid-column-gap: 3px;
+    grid-row-gap: 3px;
+    grid-template-rows: 34px;
+    padding: 5px;
+    background-color: #dddddd;
+    border-radius: 0px 0px 0px 0px;
+}
+
+.keyGridBasic {
+    background-color: #bbbbbb;
+}
+.keyToggle {
+    display:none; /* hide the checkbox itself */
+}
+.keyToggle ~ label {
+    color: grey;
+    border-style: outset;
+    padding: 2px;
+    margin: 1px;
+    cursor: pointer;
+}
+.keyToggle:checked ~ label {
+    color: black;
+    border-style: inset;
+
+}
+.keyToggleRow {
+    background-color: #bbbbbb;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    width: 448px;
+    border-radius: 0px 0px 3px 3px;
+    padding-left: 3px;
+
+}
+.l-btn {
+    float: left;
+}
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+/* Modal Content */
+.modal-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  font-family: 'Amiri', serif;
+  font-size: 14pt;
+}
+.regexInput {
+    width: 70px;
+    min-height: 20px;
+}
+.regexTitle {
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.regexClass {
+    display: none;
+}
+.rgxChckbx {
+    float: left;
+    padding-left: 8px;
+    margin-top: 4px;
+    cursor: pointer;
+}
+.rowBgd {
+    position: absolute;
+    width: 450px;
+    height: 45px;
+    z-index: -1;
+}
+.rowMapped {
+    position: absolute;
+    width: 450px;
+    height: 45px;
+    opacity: 0.01;
+    z-index: 10;
+}
+.select {
+    height: 27px;
+    width: 60px;
+    border: 2px solid #ccc;
+    -moz-border-radius: 6px;
+    font-size: 13px;
+    background-color: #fff;
+    border-right: 1px solid #666
+}
+.select option {
+    border: 1px solid #BBD8FB
+}
+.space {
+    grid-row-start: 5;
+    grid-row-end: 6;
+    grid-column-start: 4;
+    grid-column-end: 9;
+}
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+.dotted {
+    border-bottom: 1px dotted black;
+}
+.tooltip .tooltiptext {
+    visibility: hidden;
+    background-color: #70d4bb;
+    color: black;
+    text-align: center;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 13px;
+    font-family: verdana, arial, helvetica, sans-serif;
+    width: 75px;
+    /* Position the tooltip */
+    position: absolute;
+    bottom: 35px;
+    left: 70%;
+    z-index: 100;
+}
+.tooltip .rgxtooltip {
+    left: -50%;
+    top: 100%;
+    bottom:auto;
+}
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+
+#addNewKeyInput {
+    padding-top: 10px;
+    display: none;
+}
+#area {
+    position: relative;
+    height: 100px;
+    width: 451px;
+    top: 0px;
+    left: 0px;
+    border: 3px solid #b5b5b5;
+    border-bottom: 0px;
+    color: #444;
+    font-family: 'Amiri', serif;
+    font-size: 14pt;
+    border-radius: 3px 3px 0px 0px;
+    padding-right: 4px;
+    overflow: auto;
+}
+#cheatsheet {
+    display: none;
+    position: fixed;
+    left: 525px;
+    top: 64px;
+    height: 90vh;
+    overflow: auto;
+}
+#extraRows {
+    display: none;
+}
+#k {
+    position: relative;
+    top: 0px;
+    left: 0px;
+    height: 156px;
+    width: 450px;
+    outline: 0
+}
+#keyboard {
+    left: 54px;
+    width: 450px;
+}
+#moreInputs {
+    display: inline-grid;
+    grid-template-columns: 200px 200px;
+}
