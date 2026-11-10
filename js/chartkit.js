@@ -43,7 +43,7 @@ function wrap(line, n) {
   const out = []; let cur = '', len = 0, open = false
   const words = line.split(' ').flatMap(w => (w.length > n ? w.match(new RegExp(`.{1,${n}}`, 'g')) : [w]))   // long links are cut
   for (const w of words) {
-    const vis = w.replace(/<\/?[ib]>|[\uE000\uE001]/g, '').length
+    const vis = w.replace(/<\/?[ib]>|[\uE000\uE001\u2066-\u2069]/g, '').length   // markers and direction isolates take no room
     if (len && len + 1 + vis > n) { out.push(cur + (open ? '</i>' : '')); cur = open ? '<i>' : ''; len = 0 }
     cur += (len ? ' ' : '') + w; len += (len ? 1 : 0) + vis
     const o = (w.match(/<i>/g) ?? []).length, c = (w.match(/<\/i>/g) ?? []).length; if (o !== c) open = o > c
