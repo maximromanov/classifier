@@ -2,7 +2,7 @@
 
 Newest first. The dates are those of the releases.
 
-## 2.03 — to be dated at release
+## 2.03 — 2026-11-10
 
 - An Arabic keyboard for the search box, adapted from Peter Verkinderen's Arabic Virtual Keyboard.
 - A "What's new" page: this one.
