@@ -52,10 +52,7 @@ Tours are data: `tours/tours.json`. Editing or adding a tour needs no change to 
 
 ## Changes
 
-- **2.03:** Arabic keyboard for the search box, adapted from Peter Verkinderen's Arabic Virtual Keyboard (as in the NgramReader, where v2.03 brings search fields for mixed Arabic/Latin input and the Arabic regex editor); website only, not on Zenodo.
-- **2.02:** book cover in the search panel; website only, not on Zenodo.
-- **2.01:** branded header band, icons, install as a web app (manifest; no service worker); dark mode (Auto, Light, Dark; exports always light). Links of the first forms open with the corpus bars on, as they did.
-- **2.0:** redesign, guided tours, DHFAIS name and citations, one-commit data repository.
+See [`CHANGES.md`](CHANGES.md), also shown in the app as *What's new* (`changes.html`).
 
 ## Development
 
@@ -88,6 +85,6 @@ The Arabic keyboard and regex editor are adapted, with permission, from Peter Ve
 
 Cover image © Brill; not covered by this repository's licenses.
 
-The files in [`vendor/arabicVirtualKeyboard/`](vendor/arabicVirtualKeyboard/) keep their origin: they are Peter Verkinderen's Arabic Virtual Keyboard (itself based on Ahmad Ismail's Arabic keyboard), adapted with his permission; see [`ORIGIN.md`](vendor/arabicVirtualKeyboard/ORIGIN.md) there. The original repository has no license file, so these files are not covered by this repository's MIT License.
+The files in [`vendor/arabicVirtualKeyboard/`](vendor/arabicVirtualKeyboard/) keep their origin: they are Peter Verkinderen's Arabic Virtual Keyboard (itself based on Ahmad Ismail's Arabic keyboard), adapted with his permission; see [`ORIGIN.md`](vendor/arabicVirtualKeyboard/ORIGIN.md) there. The original repository has no license file, so these files are not covered by this repository's MIT License; they are used with the author's permission.
 
 The code of this app is released under the MIT License; see [`LICENSE`](LICENSE). The data, in [`ngramreader-data-2023.1.8`](https://github.com/maximromanov/ngramreader-data-2023.1.8), are derived from OpenITI release 2023.1.8 (https://doi.org/10.5281/zenodo.10007820) and are under CC BY-NC-SA 4.0.

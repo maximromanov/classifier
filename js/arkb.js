@@ -3,10 +3,11 @@
 // "⌨ Arabic" button beside a field. Insert puts the text back into the field without the display marks; Close leaves the
 // field as it was.
 import { createKeyboard, stripMarks } from '../vendor/arabicVirtualKeyboard/keyboard-popup.js'
+import { DISTINCT_LETTERS } from './arabic.js'   // the keys: the letters the corpus keeps distinct
 
 // the display marks of the keyboard (U+061C, U+180E, U+25CC; his stripping function), and any direction control
 // (U+200E, U+200F, U+202A–U+202E, U+2066–U+2069): none belongs in a search, a link, a citation or a TSV file
-const CONTROLS = /[‎‏‪-‮⁦-⁩]/g
+const CONTROLS = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g
 export const cleanField = s => stripMarks(String(s ?? '')).replace(CONTROLS, '')
 
 let dlg = null, kb = null, target = null, mode = { regex: true }
@@ -19,7 +20,7 @@ function build() {
     <p class="avk-target"></p><div class="avk-host"></div>
     <div class="avk-actions"><button type="button" class="primary" data-avk-insert>Insert</button><button type="button" data-avk-close>Close</button><span class="grow"></span></div>
     <p class="avk-credit">Adapted, with permission, from Peter Verkinderen's <a href="https://github.com/pverkind/arabicVirtualKeyboard" target="_blank" rel="noopener">Arabic Virtual Keyboard</a>.</p>`
-  kb = createKeyboard(dlg.querySelector('.avk-host'), { regex: mode.regex, storageKey: 'openiti-avk-keys', onEnter: insert })
+  kb = createKeyboard(dlg.querySelector('.avk-host'), { letters: DISTINCT_LETTERS, regex: mode.regex, onEnter: insert })
   dlg.querySelectorAll('[data-avk-close]').forEach(b => { b.onclick = () => dlg.close() })
   dlg.querySelector('[data-avk-insert]').onclick = insert
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close() })          // a click on the backdrop

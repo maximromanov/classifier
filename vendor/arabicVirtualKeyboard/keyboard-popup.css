@@ -9,7 +9,6 @@
 .avk-dialog .avk-head .close { position: static; float: none; }
 .avk-dialog .avk-target { margin: 0 0 6px; color: var(--muted); font-size: calc(12.5px + var(--fd)); }
 .avk-dialog .avk-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
-.avk-dialog .avk-actions .grow { flex: 1 1 auto; }
 .avk-dialog .avk-credit { margin: 10px 0 0; color: var(--muted); font-size: calc(11.5px + var(--fd)); }
 
 .avk { font-size: calc(13px + var(--fd)); }
@@ -22,15 +21,16 @@
 .avk textarea[data-avk=area] { display: block; width: 100%; min-height: 64px; resize: vertical; padding: 6px 10px; border: 1px solid var(--line2); border-radius: 6px 6px 0 0; background: var(--bg); color: var(--fg); font-family: Amiri, 'Geeza Pro', serif; font-size: calc(22px + var(--fd)); line-height: 1.5; }
 .avk textarea[data-avk=area]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
-.avk .keyGrid { display: grid; grid-template-columns: repeat(12, 40px); grid-auto-rows: 40px; gap: 3px; padding: 6px; background: var(--soft); direction: ltr; }
-.avk .keyGridBasic { background: var(--line); }
-.avk .avk-extra { display: none; }
+/* three grids: the letters, the regex row (NgramReader), space / _ / cursor / backspace */
+.avk .keyGrid { display: grid; grid-template-columns: repeat(12, 40px); grid-auto-rows: 40px; gap: 3px; padding: 6px; background: var(--line); direction: ltr; }
+.avk .keyGridRegex { background: var(--soft); padding-top: 4px; padding-bottom: 4px; }
+.avk .keyGridControls { border-radius: 0 0 6px 6px; }
 .avk .keyCharacter { position: relative; display: flex; align-items: center; justify-content: center; min-width: 40px; height: 40px; border-radius: 4px; background: var(--bg); color: var(--fg); box-shadow: inset 0 -2px 0 var(--line2), 0 0 0 1px var(--line2); cursor: pointer; font-family: Amiri, 'Geeza Pro', serif; font-size: 20px; line-height: 1; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.avk .keyCharacter.rx { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 17px; }
+.avk .keyCharacter.ctl { font-family: var(--ui); font-size: 19px; }
 .avk .keyCharacter:hover { background: var(--soft); }
 .avk .keyCharacter:active { box-shadow: inset 0 1px 2px var(--line2), 0 0 0 1px var(--line2); }
-.avk .keyCharacter .zwnj { font-family: var(--ui); font-size: 9px; letter-spacing: 0.02em; }
-.avk .enter { grid-row: 3 / 5; grid-column: 12; height: auto; }
-.avk .space { grid-row: 5; grid-column: 4 / 9; }
+.avk .space { grid-column: span 8; }
 
 .avk .tooltip .tooltiptext { visibility: hidden; position: absolute; z-index: 5; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); width: max-content; max-width: 220px; padding: 6px 9px; border-radius: 6px; background: var(--fg); color: var(--bg); font: calc(12px + var(--fd))/1.35 var(--ui); text-align: center; pointer-events: none; }
 .avk .rgxChckbx .tooltip { position: relative; }
@@ -38,35 +38,9 @@
 .avk .tooltip:hover .tooltiptext { visibility: visible; }
 @media (hover: none) { .avk .tooltip .tooltiptext { display: none; } }
 
-.avk .keyToggleRow { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--line); border-radius: 0 0 6px 6px; }
-.avk .keyToggle { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.avk .keyToggle ~ label { display: inline-flex; align-items: center; min-height: 34px; padding: 0 10px; border: 1px solid var(--line2); border-radius: 6px; background: var(--bg); color: var(--muted); cursor: pointer; }
-.avk .keyToggle:checked ~ label { background: var(--fg); border-color: var(--fg); color: var(--bg); }
-.avk .keyToggle:focus-visible ~ label { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.avk .avk-addkey { display: none; margin-top: 8px; }
-.avk .avk-addkey p { margin: 0 0 6px; color: var(--muted); }
-.avk .avk-addkey input { padding: 5px 8px; }
-.avk .extraInput { width: 54px; font-family: Amiri, 'Geeza Pro', serif; font-size: 18px; }
-.avk .extraInputDescr { width: 140px; }
-.avk .fivePxMargin { margin: 2px 2px 2px 0; }
-
-.avk .avk-cheatsheet { display: none; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
-.avk .avk-cheatsheet h4 { margin: 4px 0 6px; font-size: calc(13px + var(--fd)); }
-.avk .avk-cheatsheet table { width: 100%; font-size: calc(12px + var(--fd)); }
-.avk .avk-cheatsheet td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; overflow-wrap: anywhere; }
-.avk .avk-cheatsheet td:first-child { width: 76px; }
-.avk .avk-cheatsheet mark { background: var(--warn-bg); color: var(--fg); }
-.avk .regexInput { min-width: 64px; min-height: 34px; padding: 0 6px; font-family: ui-monospace, Menlo, Consolas, monospace; }
-.avk .regexTitle { margin: 6px 0 2px; font-weight: 600; cursor: pointer; }
-.avk .regexTitle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.avk .regexClass { display: none; }
-
 /* phones: a bottom sheet; the keys reflow into 8 columns of at least 40 px */
 @media (max-width: 599px) {
   .avk-dialog { width: 100vw; max-width: 100vw; margin: auto 0 0; padding: 10px 12px 12px; border-radius: 12px 12px 0 0; border-bottom: none; max-height: 88vh; }
   .avk .keyGrid { grid-template-columns: repeat(8, minmax(40px, 1fr)); padding: 4px; }
-  .avk .enter { grid-row: auto; grid-column: span 2; height: 40px; }
-  .avk .space { grid-row: auto; grid-column: span 4; }
-  .avk .keyToggle ~ label { min-height: 40px; }
+  .avk .space { grid-column: span 4; }
 }

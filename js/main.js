@@ -318,7 +318,7 @@ async function versionLine() {
     if (S.appCommit) sessionStorage.setItem('cls-app-commit', S.appCommit)
   } catch { S.appCommit = null }
   const c = dataCommit(S.release)
-  $('#version').innerHTML = `${APP.name} ${APP.version} · app commit <a href="https://github.com/${APP.repo}/commit/${S.appCommit ?? ''}">${S.appCommit ?? 'n/a'}</a> · data: OpenITI ${S.release.release}, <a href="https://github.com/${S.release.repo}/tree/${c}">${S.release.repo.split('/')[1]}@${c.slice(0, 7)}</a>`
+  $('#version').innerHTML = `Version ${APP.version} · <a href="changes.html">What's new</a> · app commit <a href="https://github.com/${APP.repo}/commit/${S.appCommit ?? ''}">${S.appCommit ?? 'n/a'}</a> · data: OpenITI ${S.release.release}, <a href="https://github.com/${S.release.repo}/tree/${c}">${S.release.repo.split('/')[1]}@${c.slice(0, 7)}</a>`
 }
 
 // ---- wiring -----------------------------------------------------------------------------------------------------------

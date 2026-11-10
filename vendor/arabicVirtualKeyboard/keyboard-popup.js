@@ -7,11 +7,13 @@
 // every change is listed in ORIGIN.md. His functions for adding and stripping the display marks (wr, vowelSigns,
 // toPrevChar, toNextChar, getSelection, remove, arrowL, arrowR and the stripping lines of copy2Clipboard) keep their
 // bodies; they now look up their elements inside the pop-up (sl) instead of the whole page.
+// Simplified for the apps (ORIGIN.md, change 12): only the letters the corpus keeps distinct (given by the app), one row of
+// regex symbols, space, "_", backspace, the cursor arrows; no vowel, palaeographic, Persian or custom keys, no cheat sheet.
 
 //* Define the main cosmetic markers used to force RTL
-const arLet = "؜"; // Arabic letter mark
-const vowSep = "᠎"; // Mongolian vowel separator
-const circle = "◌"; // dotted circle for diacritics
+const arLet = "\u061c"; // Arabic letter mark
+const vowSep = "\u180e"; // Mongolian vowel separator
+const circle = "\u25cc"; // dotted circle for diacritics
 // */
 
 /**
@@ -24,14 +26,15 @@ export function stripMarks(copyText) {
     temp_copyText = temp_copyText.split(arLet).join("");  // Arabic letter mark
     temp_copyText = temp_copyText.split(vowSep).join("");  // Mongolian Vowel Separator
     // previously used separators, no longer used:
-    //temp_copyText = temp_copyText.split("‎").join(""); //left-to-right mark
+    //temp_copyText = temp_copyText.split("\u200e").join(""); //left-to-right mark
     //temp_copyText = temp_copyText.split(" ").join(""); //hair space
     return temp_copyText;
 }
 
 //-----------------------------------------------------------------------------
 
-// Populate the virtual keyboard's keys:
+// His key lists. The pop-up shows the letters of basic that the app passes (letters), in his order; of regexchars the
+// row the apps use (REGEX_ROW), plus \w; and the keys for space, "_", backspace and the cursor arrows.
 
 var basic = [
     ["ذ", ""],
@@ -45,7 +48,7 @@ var basic = [
     ["٨", ""],
     ["٩", ""],
     ["٠", ""],
-    ["➞", "backspace"],                                  // Row 1
+    ["\u279e", "backspace"],                                  // Row 1
     ["ض", ""],
     ["ص", ""],
     ["ث", ""],
@@ -85,59 +88,12 @@ var basic = [
     [':', "colon"],
     ['؛', "Arabic semicolon"],
     [" ", ""],
-    ['‌', "zero-width non-joiner (فاصلهٔ مجازی)"],
+    ['\u200c', "zero-width non-joiner (فاصله\u0654 مجازی)"],
     ['؟', "Arabic question mark"],
     ['.', "full stop"],
     ["!", "exclamation mark"],                                // Row 5
     ];
 
-var additional = [
-    [circle+'ْ',"sukūn"],
-    [circle+'ً', "fatḥatān"],
-    [circle+'ٌ',"ḍammatān"],
-    [circle+'ٍ', "kasratān"],
-    [circle+'َ', "fatḥa"],
-    [circle+'ُ', "ḍamma"],
-    [circle+'ِ',"kasra"],
-    [circle+'ّ', "shadda"],
-    ['آ', "alif madda"],
-    ['ٱ', "alif waṣla"],
-    ['أ', "alif with hamza on top"],
-    ['إ', "alif with hamza below"],                           // Row 6
-];
-var palaeo = [
-    [circle+'ۡ',"Quranic sukūn"],
-    [circle+'ࣰ',"Quranic open fatḥatān"],
-    [circle+'ࣱ',"Quranic open ḍammatān"],
-    [circle+'ࣲ',"Quranic open kasratān"],
-    [circle+'ٰ',"dagger alif"],
-    ['ٮ',"dotless b"],
-    ['ں',"dotless n"],
-    ['ڡ',"dotless f"],
-    ['ٯ',"dotless q"],
-    ['ڧ',"maghrebi q"],
-    ['ڢ',"maghrebi f"],
-    ['ٯٜ',"qāf with dot below"],                         // Row 7
-];
-var persian = [
-    ["۱", "Persian digit 1"],
-    ["۲", "Persian digit 2"],
-    ["۳", "Persian digit 3"],
-    ["۴", "Persian digit 4"],
-    ["۵", "Persian digit 5"],
-    ["۶", "Persian digit 6"],
-    ["۷", "Persian digit 7"],
-    ["۸", "Persian digit 8"],
-    ["۹", "Persian digit 9"],
-    ["۰", "Persian digit 0"],
-    ['پ', "Persian peh"],
-    ['چ', "Persian cheh"],                                     //Row 8
-    ['ژ', "Persian zheh"],
-    ['ک', "Persian kāf"],
-    ['گ', "Persian gāf"],
-    ['ی', "Persian yeh"],
-    ['ۂ', "Persian heh-yeh"],
-];
 var regexchars = [
     ['.', "dot"],
     [',', "latin comma"],
@@ -166,20 +122,24 @@ var regexchars = [
     ["=", "equals"],
 ];
 
+// the regex row of the apps, in this order: his keys and aliases, and \w (added)
+var REGEX_ROW = ['[', ']', '(', ')', '|', '?', '*', '+', '.', String.raw`\w`, '-', '^'];
+var WORD_CHAR = [String.raw`\w`, "word character: a letter, digit or _"];
+
 var vowels = [
-    'ْ', //sukūn
-    'ً', //fatḥatān
-    'ٌ', //ḍammatān
-    'ٍ', //kasratān
-    'َ', //fatḥa
-    'ُ', //ḍamma
-    'ِ', //kasra
-    'ّ', //shadda
-    'ۡ', //Quranic sukūn
-    'ࣰ', //Quranic open fatḥatān
-    'ࣱ', //Quranic open ḍammatān
-    'ࣲ', //Quranic open kasratān
-    'ٰ', //dagger alif
+    '\u0652', //sukūn
+    '\u064b', //fatḥatān
+    '\u064c', //ḍammatān
+    '\u064d', //kasratān
+    '\u064e', //fatḥa
+    '\u064f', //ḍamma
+    '\u0650', //kasra
+    '\u0651', //shadda
+    '\u06e1', //Quranic sukūn
+    '\u08f0', //Quranic open fatḥatān
+    '\u08f1', //Quranic open ḍammatān
+    '\u08f2', //Quranic open kasratān
+    '\u0670', //dagger alif
 ];
 
 function vowelSigns(txt, include=true) {
@@ -188,9 +148,9 @@ function vowelSigns(txt, include=true) {
     for (let i=0, j=vowels.length; i<j; i++) {
       txt = txt.split(vowels[i]).join(circle+vowels[i]); // add dotted circles
     }
-    txt = txt.replace(/◌+/g, "◌");
+    txt = txt.replace(/\u25cc+/g, "\u25cc");
   } else {
-    txt = txt.split("◌").join(""); // remove dotted circles
+    txt = txt.split("\u25cc").join(""); // remove dotted circles
   }
   return txt;
 }
@@ -245,9 +205,9 @@ function getSelection(target, prev=false) {
   }
 }
 
-// the markup of the pop-up: the parts of the original index.html (#intro, #keyboard, #addNewKeyInput, #cheatsheet),
-// with ids replaced by data-avk names and inline handlers by data attributes (see ORIGIN.md)
-const MARKUP = (regex) => String.raw`
+// the markup of the pop-up: the parts of the original index.html (#intro, #keyboard) that remain, with ids replaced by
+// data-avk names (see ORIGIN.md)
+const MARKUP = (regex) => `
 <div class="avk-intro"${regex ? '' : ' hidden'}>
     <label class="rgxChckbx">
         <input type="checkbox" data-avk="regexCheck0">
@@ -278,140 +238,20 @@ const MARKUP = (regex) => String.raw`
 </div>
 <div class="avk-keyboard">
     <textarea data-avk="area" dir="rtl" lang="ar" rows="2" spellcheck="false" autocomplete="off" aria-label="Arabic text"></textarea>
-    <div class="avk-basic">
-        <div class="keyGrid keyGridBasic"></div>
-    </div>
-    <div data-avk="extraRows" class="avk-extra">
-        <div class="keyGrid"></div>
-    </div>
-    <div class="keyToggleRow">
-      <span class="fivePxMargin"><input type="checkbox" class="keyToggle" data-cat="additional" id="avk-c1"><label for="avk-c1">Vowels</label></span>
-      <span class="fivePxMargin"><input type="checkbox" class="keyToggle" data-cat="palaeo" id="avk-c2"><label for="avk-c2">Palaeo</label></span>
-      <span class="fivePxMargin"><input type="checkbox" class="keyToggle" data-cat="persian" id="avk-c3"><label for="avk-c3">Persian</label></span>
-      <span class="fivePxMargin"${regex ? '' : ' hidden'}><input type="checkbox" class="keyToggle" data-cat="regexchars" id="avk-c4"><label for="avk-c4">Regex</label></span>
-      <span class="fivePxMargin"><input type="checkbox" class="keyToggle" data-cat="cookieKeys" id="avk-c5"><label for="avk-c5">Custom</label></span>
-      <span class="fivePxMargin"><input type="checkbox" class="keyToggle" data-all id="avk-c6" data-avk="c6"><label for="avk-c6">All</label></span>
-      <span class="fivePxMargin"${regex ? '' : ' hidden'}><input type="checkbox" class="keyToggle" data-toggle="cheatsheet" id="avk-c7"><label for="avk-c7">Cheatsheet</label></span>
-    </div>
-</div>
-<div data-avk="addNewKeyInput" class="avk-addkey">
-  <p>Need more special characters? Add a key with a new character (and an optional description):</p>
-  <input type="text" class="extraInput fivePxMargin" data-avk="extraInput0" dir="rtl" placeholder="ک" aria-label="new character">
-  <input type="text" class="extraInputDescr fivePxMargin" data-avk="extraInputDescr0" placeholder="description" aria-label="description">
-  <button type="button" class="fivePxMargin" data-addkey>Add key</button>
-  <button type="button" class="fivePxMargin" data-resetkeys>Reset keys</button>
-</div>
-<div data-avk="cheatsheet" class="avk-cheatsheet">
-
-        <h4>Regex Cheatsheet input (<a href="https://www.rexegg.com/regex-quickstart.html" target="_blank" rel="noopener">source</a>)</h4>
-        <!--
-            <img src="i/regexCheatSheet.jpg"></img>
-            -->
-
-        <table>
-            <tr><td></td><td></td><td><b>Sample regex</b></td><td><b>Sample match</b></td></tr>
-            <tr><td><button type="button" class="regexInput" data-wr="0">.</button></td><td>Any character except line break</td><td>a.c</td><td><b><mark>abc</mark></b> <b><mark>a.c</mark></b></td></tr>
-            <tr><td><button type="button" class="regexInput" data-wr="1">\</button></td><td>Escapes a special character</td><td>a\.c</td><td>abc <b><mark>a.c</mark></b></td></tr>
-        </table>
-        <div class="regexTitle" data-toggle-section="charGroups" role="button" tabindex="0">Character groups &or;</div>
-        <div class="regexClass" data-avk="charGroups">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="2">\d</button></td><td>one Unicode digit in any script</td><td>file_\d_\d</td><td><b><mark>file_9_ ٩</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="3">\w</button></td><td>"word character": Unicode letter, ideogram, digit, or underscore</td><td>\w-\w\w\w</td><td><b><mark>字-ま_۳</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="4">\s</button></td><td>"whitespace character": any Unicode separator</td><td>a\sb\sc</td><td>aaa<b><mark>a b
-                    c</mark></b>ccdde</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="5">\D</button></td><td>One character that is not a digit</td><td>2\D\D\D</td><td>1<b><mark>2ABC</mark></b>34</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="6">\W</button></td><td>One character that is not a word character</td><td>\W\W\W\W\W</td><td><b><mark>*-+=)</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="7">\S</button></td><td>One character that is not a whitespace character</td><td>\S\S\S\S</td><td><b><mark>Yo3)</mark></b> Y o3</td></tr>
-            </table>
-        </div>
-        <div class="regexTitle" data-toggle-section="whiteSpace" role="button" tabindex="0">More White-Space &or;</div>
-        <div class="regexClass" data-avk="whiteSpace">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="8">\t</button></td><td>Tab</td><td>T\t\w\w</td><td>A <b><mark>T     ab</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="9">\r</button></td><td>Carriage return character</td><td>see below</td><td></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="10">\n</button></td><td>Line feed character</td><td>see below</td><td></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="11">\r\n</button></td><td>Line separator on Windows</td><td>AB\r\nCD</td><td><b><mark>AB<br/>CD</mark></b></td></tr>
-            </table>
-        </div>
-        <div class="regexTitle" data-toggle-section="quantifiers" role="button" tabindex="0">Quantifiers &or;</div>
-        <div class="regexClass" data-avk="quantifiers">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="12">?</button></td><td>Once or none</td><td>plurals?</td><td><b><mark>plural</mark></b> and <b><mark>plurals</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="13">*</button></td><td>Zero or more times (greedy) </td><td>aB*a bB*b aB*</td><td><b><mark>aBBa bb aBBBBB</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="14">+</button></td><td>One or more (greedy) </td><td>Version \w-\w+</td><td><b><mark>Version A-b1_100</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="15">{3}</button></td><td>Exactly three times</td><td>\D{3}</td><td><b><mark>ABC</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="16">{2,4}</button></td><td>Two to four times (greedy) </td><td>\d{2,4}</td><td><b><mark>156</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="17">{3,}</button></td><td>Three or more times (greedy) </td><td>\w{4,}</td><td><b><mark>regex_</mark></b></td></tr>
-            </table>
-        </div>
-        <div class="regexTitle" data-toggle-section="lazyQuantifiers" role="button" tabindex="0">Lazy quantifiers (w/ question mark) &or;</div>
-        <div class="regexClass" data-avk="lazyQuantifiers">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="18">?</button></td><td>Once or none (lazy)</td><td>plurals?</td><td><b><mark>plural</mark></b> and <b><mark>plural</mark></b>s</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="19">+?</button></td><td>One or more (lazy) </td><td>Version \w-\w+?</td><td><b><mark>Version A-b</mark></b>1_100</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="20">{2,4}?</button></td><td>Two to four times (lazy) </td><td>\d{2,4}?</td><td><b><mark>15</mark></b>6</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="21">{3,}?</button></td><td>Three or more times (lazy) </td><td>\w{4,}?</td><td><b><mark>rege</mark></b>x_</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="22">*?</button></td><td>Zero or more times (lazy) </td><td>aB*a b* aB*?</td><td><b><mark>aBBa bb a</mark></b>BBBBB</td></tr>
-            </table>
-        </div>
-        <div class="regexTitle" data-toggle-section="logic" role="button" tabindex="0">Logic &or;</div>
-        <div class="regexClass" data-avk="logic">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="23">|</button></td><td>Alternation / OR operand</td><td>22|33</td><td><b><mark>22</mark></b> + 11 = <b><mark>33</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="24">( … )</button></td><td>Capturing group</td><td>A(nt|pple)</td><td>An <b><mark>A<span class="underline">nt</span></mark></b> on an <b><mark>A<span class="underline">pple</span></mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="25">\1</button></td><td>Contents of Group 1</td><td>r(\w)g\1x</td><td><b><mark>regex</mark></b> not rigex</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="26">\2</button></td><td>Contents of Group 2</td><td>(\d\d)\+(\d\d)=\2\+\1</td><td><b><mark>12+65=65+12</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="27">(?: … )</button></td><td>Non-capturing group</td><td>A(?:nt|pple)</td><td>An <b><mark>Ant</mark></b> on an <b><mark>Apple</mark></b></td></tr>
-            </table>
-        </div>
-        <div class="regexTitle" data-toggle-section="charClasses" role="button" tabindex="0">Character Classes &or;</div>
-        <div class="regexClass" data-avk="charClasses">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="28">[ … ]</button></td><td>One of the characters in the brackets</td><td>T[ao]p</td><td><b><mark>Tap</mark></b> and <b><mark>Top</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="29">[x-y]</button></td><td>One of the characters in the range from x to y</td><td>[A-Z]+</td><td><b><mark>UPPER</mark></b>case <b><mark>LE</mark></b>tter<b><mark>S</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="30">[^xy]</button></td><td>One character that is not x or y</td><td>[^12]</td><td><b><mark>A</mark></b>1<b><mark>b</mark></b>2<b><mark>+</mark></b>1</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="31">[^x-y]</button></td><td>One of the characters not in the range from x to y</td><td>[^a-z]{3}</td><td>ab<b><mark>A1! </mark></b>cd</td></tr>
-            </table>
-        </div>
-        <div class="regexTitle" data-toggle-section="anchors" role="button" tabindex="0">Anchors and Boundaries &or;</div>
-        <div class="regexClass" data-avk="anchors">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="32">^</button></td><td>Start of line</td><td>^abc [1-9]*</td><td><b><mark>abc 18</mark></b> abc 19</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="33">$</button></td><td>End of line</td><td>abc [1-9]*$</td><td>abc 18 <b><mark>abc 19</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="34">\b</button></td><td>Word boundary: position where one side only is a letter, digit or underscore</td><td>\bكتب\b</td><td><b><mark>كتب</mark></b> مكتبه كتبه</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="35">\B</button></td><td>Not a word boundary</td><td>\Bكتب\B</td><td>كتب م<b><mark>كتب</mark></b>ه كتبه</td></tr>
-            </table>
-        </div>
-        <div class="regexTitle" data-toggle-section="lookarounds" role="button" tabindex="0">Lookarounds &or;</div>
-        <div class="regexClass" data-avk="lookarounds">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="36">(?=…)</button></td><td>Positive lookahead</td><td>(?=\d{10})\d{5}</td><td><b><mark>01234</mark></b>56789</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="37">(?&lt;=…)</button></td><td>Positive lookbehind</td><td>(?&lt;=\d\s)cat</td><td>1 <b><mark>cat</mark></b> white cat</td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="38">(?!…)</button></td><td>Negative lookahead</td><td>(?!theatre)the\w*</td><td><b><mark>the</mark></b> theatre <b><mark>theme</mark></b></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="39">(?&lt;!…)</button></td><td>Negative lookbehind</td><td>(?&lt;!USD)\d{3,}</td><td>USD300 = GBP<b><mark>250</mark></b></td></tr>
-            </table>
-        </div>
-        <div class="regexTitle" data-toggle-section="arabic" role="button" tabindex="0">Arabic Unicode &or;</div>
-        <div class="regexClass" data-avk="arabic">
-            <table>
-                <tr><td><button type="button" class="regexInput" data-wr="40">[…]</button></td><td>Any Arabic character in Unicode </td><td></td><td></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="41">[…]</button></td><td>Any Arabic punctuation character in Unicode</td><td></td><td></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="42">[…]</button></td><td>Any Arabic diacritic in Unicode</td><td></td><td></td></tr>
-                <tr><td><button type="button" class="regexInput" data-wr="43">[…]</button></td><td>Any Arabic/hindi number in Unicode</td><td></td><td></td></tr>
-            </table>
-        </div>
+    <div class="keyGrid keyGridBasic" data-avk="letters" aria-label="Arabic letters"></div>
+    <div class="keyGrid keyGridRegex" data-avk="regex" aria-label="Regular expression symbols"${regex ? '' : ' hidden'}></div>
+    <div class="keyGrid keyGridControls" data-avk="controls" aria-label="Space, underscore, cursor, backspace"></div>
 </div>`
 
 /**
  * Build the keyboard inside root (an element of the pop-up).
  *
  * @param {object} root - the element that receives the keyboard
- * @param {object} opts - regex: offer the RTL regex mode, letter separation, the regex keys and the cheat sheet;
- *                        storageKey: localStorage key of the custom keys (the original used a cookie "keys");
- *                        onEnter: called for the Enter key of the hardware keyboard and the ⤷ key
+ * @param {object} opts - letters: the Arabic letters to offer (the app's distinct letters);
+ *                        regex: offer the RTL regex mode, letter separation and the regex row;
+ *                        onEnter: called for the Enter key of the hardware keyboard
  */
-export function createKeyboard(root, { regex = true, storageKey = 'avk-keys', onEnter = null } = {}) {
+export function createKeyboard(root, { letters = [], regex = true, onEnter = null } = {}) {
   root.classList.add('avk');
   root.innerHTML = MARKUP(regex);
 
@@ -419,206 +259,39 @@ export function createKeyboard(root, { regex = true, storageKey = 'avk-keys', on
       return root.querySelector('[data-avk="' + id + '"]');
   }
 
-  var shownCategories = [];
-
-  populateInitialKeys()
-  function populateInitialKeys() {
-    addKeys(basic, 0);
-  }
-
-  var cookieKeys = getKeysFromCookie();
-  function getKeysFromCookie() {
-    var cookie_keys = getCookie("keys");
-    if (cookie_keys) {
-      try { return JSON.parse(cookie_keys); } catch (e) { return []; }
-    } else {
-      return [];
-    }
-  }
-
-  var keyCategories = regex ? [additional, palaeo, persian, regexchars, cookieKeys] : [additional, palaeo, persian, cookieKeys];
-  var categoryByName = { additional, palaeo, persian, regexchars, get cookieKeys() { return cookieKeys; } };
-
-  function toggleAllKeys() {
-    makeVisible('extraRows');
-    var keyToggles = [...root.querySelectorAll(".keyToggle")].filter(t => !t.closest('[hidden]'));
-    var last = keyToggles.length - (regex ? 1 : 0);   // all toggles except the cheatsheet
-    if (shownCategories.length === keyCategories.length) { // all are displayed
-      removeAllKeys();
-      for (let i=0; i<last; i++) {  // switch off all toggles except cheatsheet
-        keyToggles[i].checked = false;
-      }
-    } else {  // some or no toggles are checked
-      removeAllKeys();
-      // refresh the cookieKeys in the keyCategories array:
-      keyCategories = keyCategories.slice(0, -1);
-      keyCategories.push(cookieKeys);
-      for (let i=0, j=keyCategories.length; i<j; i++) {
-        var cat = keyCategories[i];
-        addKeys(cat, 1);
-      }
-      for (let i=0; i<last; i++) {  // switch on all toggles except cheatsheet
-        keyToggles[i].checked = true;
-      }
-    }
-  }
-
-
-  function addKeys(cat, keyGridNo) {
-    if (keyGridNo === 1) makeVisible('extraRows');
-    if (!shownCategories.includes(cat)) {
-      for (let k=0, l=cat.length; k<l; k++) {
-        addKey(cat[k][0], cat[k][1], keyGridNo, cat);
-      }
-      if (keyGridNo === 1) shownCategories.push(cat);
-      if (cat === cookieKeys) makeVisible('addNewKeyInput');
-    } else {
-      removeKeys(cat, keyGridNo)
-      if (cat === cookieKeys) toggle('addNewKeyInput');
-    }
-    if (shownCategories.length !== 0) {
-      if (shownCategories.length === keyCategories.length) {
-        sl("c6").checked = true;
-      } else {
-        sl("c6").checked = false;
-      }
-    }
-  }
-
-  function addKey(character, alias, keyGridNo=1, cat="") {
-     // new character added by user:
-     if (character === "none") {
-         var character = sl("extraInput0").value;
-         var alias = sl("extraInputDescr0").value;
-         if (!character) return false;
-         // add the key to the stored keys:
-         var keys = getKeysFromCookie();
-         keys.push([character, alias]);
-         createCookie("keys", JSON.stringify(keys), 365);
-         if (shownCategories.includes(cookieKeys)) removeKeys(cookieKeys, 1);
-         shownCategories = shownCategories.filter(function(e) { return e !== cookieKeys});
-         keyCategories = keyCategories.map(function(e) { return e === cookieKeys ? keys : e});
-         cookieKeys = keys;
-         addKeys(cookieKeys, 1);
-         sl("extraInput0").value = ""; sl("extraInputDescr0").value = "";
-         return true;
-     }
-     // Add the character to the grid:
+  // a key: his addKey, reduced to the kinds of keys that remain
+  function addKey(character, alias, grid, onclick, cls = "") {
      var keyCharacterDiv = document.createElement("div");
-     if (character===String.raw`\n`) {
-       keyCharacterDiv.innerHTML = "⤷";
-       keyCharacterDiv.setAttribute("class", "keyCharacter tooltip enter");
-     } else if (character===String.raw`\\`) {
-       keyCharacterDiv.innerHTML = "&#92;";
-       keyCharacterDiv.setAttribute("class", "keyCharacter tooltip");
-     } else  if (character==='‌') {
-       keyCharacterDiv.innerHTML = '<span class="zwnj">ZWNJ</span>';
-       keyCharacterDiv.setAttribute("class", "keyCharacter tooltip");
-     } else{
-       // the key face shows a vowel sign on a taṭwīl: the dotted circle (U+25CC) is not in the Amiri the apps load, and a
-       // vowel sign cannot attach to a circle from another font (see ORIGIN.md); the key still inserts his characters
-       keyCharacterDiv.textContent = character.split(circle).join("\u0640");
-       if (character===" ") {
-         keyCharacterDiv.setAttribute("class", "keyCharacter tooltip space");
-       } else {
-         keyCharacterDiv.setAttribute("class", "keyCharacter tooltip");
-       }
-     }
+     keyCharacterDiv.textContent = character;
+     keyCharacterDiv.setAttribute("class", "keyCharacter tooltip " + cls);
      keyCharacterDiv.setAttribute("role", "button");
-     keyCharacterDiv.setAttribute("aria-label", alias || (character === " " ? "space" : character));
-     // the original wrote onclick="wr('<character>')": the same characters are inserted (\\ as one backslash);
-     // the ⤷ key (and the Enter key) inserts the text into the search field
-     if (alias==="backspace") {
-         keyCharacterDiv.onclick = function() { remove('backspace'); };
-     } else if (alias==="enter") {
-         keyCharacterDiv.onclick = function() { if (onEnter) onEnter(); };
-     } else {
-         var text = character===String.raw`\\` ? "\\" : character;
-         keyCharacterDiv.onclick = function() { wr(text); };
-     }
+     keyCharacterDiv.setAttribute("aria-label", alias || character);
+     keyCharacterDiv.onclick = onclick;
      keyCharacterDiv.onpointerdown = function(e) { e.preventDefault(); };   // the text area keeps the focus and the cursor
-     keyCharacterDiv.dataset.key = makeKeyId(character, alias);
-     root.querySelectorAll(".keyGrid")[keyGridNo].appendChild(keyCharacterDiv);
+     sl(grid).appendChild(keyCharacterDiv);
      if (alias) {
          var ttSpan = document.createElement("span");
          ttSpan.setAttribute("class", "tooltiptext");
          ttSpan.textContent = alias;
          keyCharacterDiv.appendChild(ttSpan);
      }
-     return true;
   }
 
-  function makeKeyId(character, alias) {
-    if (alias) {
-      return "key_"+alias.replace(new RegExp("\W+", "g"), "_");
-    } else {
-      return "key_"+character; // Math.random().toString(36).substr(2, 5); // random id
-    }
-  }
-
-  function removeAllKeys() {
-    while (shownCategories.length > 0) {
-      removeKeys(shownCategories[0], 1)
-    }
-  }
-
-  function removeKeys(cat, keyGridNo) {
-    for (let k=0, l=cat.length; k<l; k++) {
-      removeKey(cat[k][0], cat[k][1], keyGridNo, cat);
-    }
-    // remove the category from the list of shown categories
-    shownCategories = shownCategories.filter(function(e) { return e !== cat});
-    if (shownCategories.length === 0) {
-      toggle('extraRows');
-    }
-  }
-
-  function removeKey(character, alias, keyGridNo=1, cat="") {
-    var id = makeKeyId(character, alias);
-    var key = [...root.querySelectorAll(".keyGrid")[keyGridNo].children].find(function(e) { return e.dataset.key === id });
-    if (key) key.remove();
-  }
-
-  // the original kept the custom keys in a cookie; here they are kept in this browser's localStorage
-  function createCookie(name, value, days) {
-      try { if (value) localStorage.setItem(storageKey, value); else localStorage.removeItem(storageKey); } catch (e) {}
-  }
-
-  function getCookie(c_name) {
-      try { return localStorage.getItem(storageKey) || ""; } catch (e) { return ""; }
-  }
-
-  function resetKeys() {
-      createCookie("keys", "", 365);
-      // the original reloaded the page; here the custom keys are removed in place
-      if (shownCategories.includes(cookieKeys)) removeKeys(cookieKeys, 1);
-      keyCategories = keyCategories.map(function(e) { return e === cookieKeys ? [] : e});
-      cookieKeys = [];
-      addKeys(cookieKeys, 1);
-  }
-
-  //-----------------------------------------------------------------------------
-
-
-  /**
-   * toggle an html element's visibility.
-   *
-   * @param {string} id - the id of the html element
-   */
-
-  function toggle(id) {
-     var el = sl(id);
-     if (el.style.display === "block"){
-         el.style.display = "none";
-     } else {
-         el.style.display = "block";
-     }
-  }
-
-  function makeVisible(id) {
-     var el = sl(id);
-     el.style.display = "block";
-  }
+  // the letters: his layout (basic), only the letters the app passes; any other of them after his
+  var shown = basic.map(function(k) { return k[0]; }).filter(function(c) { return letters.includes(c); });
+  letters.filter(function(c) { return !shown.includes(c); }).forEach(function(c) { shown.push(c); });
+  shown.forEach(function(c) { addKey(c, "", "letters", function() { wr(c); }); });
+  // the regex row: his keys with his aliases (the backslash of \w is inserted as typed)
+  if (regex) REGEX_ROW.forEach(function(c) {
+      var k = c === WORD_CHAR[0] ? WORD_CHAR : regexchars.find(function(x) { return x[0] === c; });
+      addKey(c, k[1], "regex", function() { wr(c); }, "rx");
+  });
+  // space, underscore (joins the words of a phrase), the cursor arrows (his arrowL, arrowR), backspace (his remove)
+  addKey(" ", "space", "controls", function() { wr(" "); }, "space");
+  addKey("_", "underscore: joins the words of a phrase", "controls", function() { wr("_"); }, "rx");
+  addKey("\u2190", "cursor left", "controls", function() { arrowL(false); }, "ctl");
+  addKey("\u2192", "cursor right", "controls", function() { arrowR(false); }, "ctl");
+  addKey("\u232b", "backspace", "controls", function() { remove("backspace"); }, "ctl");
 
 
   // adapt the paste event in the text area: use the wr() function to input the copied text:
@@ -762,13 +435,13 @@ export function createKeyboard(root, { regex = true, storageKey = 'avk-keys', on
           item = tr + item.join(tr) + tr;
           offsetQ = 4;
       } else if (sl("regexCheck0").checked) {
-          // add an Arabic letter mark (؜) before and after every character
+          // add an Arabic letter mark (\u061c) before and after every character
           // to fix the display order for every character from right to left:
           item = item.split("");
           item = arLet + item.join(arLet) + arLet;
           offsetQ = 2;
       } else if (sl("regexCheck").checked) {
-          // add a MONGOLIAN VOWEL SEPARATOR (᠎) before and after
+          // add a MONGOLIAN VOWEL SEPARATOR (\u180e) before and after
           // every character to force separation of the Arabic characters:
           item = item.split("");
           item = vowSep + item.join(vowSep) + vowSep;
@@ -932,61 +605,6 @@ export function createKeyboard(root, { regex = true, storageKey = 'avk-keys', on
     target.focus();
     return true;
   }
-
-  // ---- the handlers of the original's inline onclick attributes, attached inside the pop-up -------------------------
-  root.querySelectorAll('.keyToggle[data-cat]').forEach(function(t) { t.onclick = function() { addKeys(categoryByName[t.dataset.cat], 1); }; });
-  root.querySelector('.keyToggle[data-all]').onclick = function() { toggleAllKeys(); };
-  root.querySelector('.keyToggle[data-toggle]').onclick = function() { toggle('cheatsheet'); };
-  root.querySelector('[data-addkey]').onclick = function() { addKey("none", "none"); };
-  root.querySelector('[data-resetkeys]').onclick = function() { resetKeys(); };
-  var CHEAT = [
-    function() { wr('.'); },
-    function() { wr('\\'); },
-    function() { wr(String.raw`\d`); },
-    function() { wr(String.raw`\w`); },
-    function() { wr(String.raw`\s`); },
-    function() { wr(String.raw`\D`); },
-    function() { wr(String.raw`\W`); },
-    function() { wr(String.raw`\S`); },
-    function() { wr(String.raw`\t`); },
-    function() { wr(String.raw`\r`); },
-    function() { wr(String.raw`\n`); },
-    function() { wr(String.raw`\r`+'\u061C'+String.raw`\n`); },
-    function() { wr('?'); },
-    function() { wr('*'); },
-    function() { wr('+'); },
-    function() { wr('{}', 1); },
-    function() { wr('{,}', 2); },
-    function() { wr('{,}', 2); },
-    function() { wr('??'); },
-    function() { wr('+?'); },
-    function() { wr('{,}?', 3); },
-    function() { wr('{,}?', 3); },
-    function() { wr('*?'); },
-    function() { wr('|'); },
-    function() { wr('()', 1); },
-    function() { wr(String.raw`\1`); },
-    function() { wr(String.raw`\2`); },
-    function() { wr('(?:)', 1); },
-    function() { wr('[]', 1); },
-    function() { wr('[-]', 2); },
-    function() { wr('[^]', 1); },
-    function() { wr('[^-]', 2); },
-    function() { wr('^'); },
-    function() { wr('$'); },
-    function() { wr(String.raw`\b`); },
-    function() { wr(String.raw`\B`); },
-    function() { wr('(?=)', 1); },
-    function() { wr('(?\u003c=)', 1); },
-    function() { wr('(?!)', 1); },
-    function() { wr('(?\u003c!)', 1); },
-    function() { wr('[\u0600-\u06ff\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]'); },
-    function() { wr('[،؍؎؏؛؞؟٭۔۝۞۩۽]'); },
-    function() { wr('[\u25cc\u0610-\u25cc\u061A\u25cc\u064b-\u25cc\u065f\u25cc\u0670\u25cc\u06d6-\u25cc\u06dc\u25cc\u06df-\u25cc\u06e4\u25cc\u06e7\u25cc\u06e8\u25cc\u06ea-\u25cc\u06ed]'); },
-    function() { wr('[\u0660-\u0669\u06f0-\u06f9]'); },
-  ];
-  root.querySelectorAll('[data-wr]').forEach(function(b) { b.onpointerdown = function(e) { e.preventDefault(); }; b.onclick = function() { CHEAT[Number(b.dataset.wr)](); }; });
-  root.querySelectorAll('[data-toggle-section]').forEach(function(t) { t.onclick = function() { toggle(t.dataset.toggleSection); }; });
 
   // ---- the pop-up's interface -----------------------------------------------------------------------------------------
   return {

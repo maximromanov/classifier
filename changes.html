@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-app="classifier">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's new · OpenITI Book Classifier</title>
+<meta name="description" content="Book typology of the works in the OpenITI corpus of premodern Arabic texts (release 2023.1.8): complete-text and rolling assessments, entropy, TF-IDF neighbours, author profiles. In the browser.">
+<link rel="icon" href="brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="brand/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#b8560f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Classifier">
+<meta property="og:type" content="website">
+<meta property="og:title" content="OpenITI Book Classifier">
+<meta property="og:description" content="Book typology of the works in the OpenITI corpus of premodern Arabic texts (release 2023.1.8): complete-text and rolling assessments, entropy, TF-IDF neighbours, author profiles. In the browser.">
+<meta property="og:image" content="https://maximromanov.github.io/classifier/brand/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://maximromanov.github.io/classifier/changes.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap">
+<script>try{var t=localStorage.getItem('openiti-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<link rel="stylesheet" href="css/app.css">
+<style>.changes { max-width: 74ch; margin: 0 auto; padding: 8px 20px 34px; } .changes h1 { font-family: var(--serif); font-size: calc(24px + var(--fd)); font-weight: 600; margin: 22px 0 6px; } .changes h2 { margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--line); } .changes li { margin: 5px 0; } .changes ul { padding-left: 22px; } .changes a { overflow-wrap: anywhere; } .changes .back { margin-top: 26px; }</style>
+</head>
+<body>
+<header class="site">
+  <div class="brand"><a class="name" href="./" data-nav><img class="band-mark" src="brand/mark-classifier.svg" alt=""><span class="band-title">Book Classifier</span><span class="sub">DHFAIS App{endix} 2</span></a></div>
+  <nav id="band-nav" aria-label="Site"><a id="link-other" href="https://maximromanov.github.io/ngramreader/" target="_blank" rel="noopener">NgramReader</a><a href="https://brill.com/display/title/74416" target="_blank" rel="noopener">The book</a><a href="./">Open the app</a><div class="seg theme-sw in-menu" role="group" aria-label="Color mode"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div></nav>
+  <button type="button" id="band-menu" class="band-menu" aria-label="Menu" aria-expanded="false" aria-controls="band-nav"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false"><path d="M3 6 H21 M3 12 H21 M3 18 H21" stroke="#fff" stroke-width="2.6" fill="none"/></svg></button>
+  <svg class="band-rule" viewBox="0 0 1478 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect x="0" width="147" height="8" fill="#e5b388"/><rect x="157" width="86" height="8" fill="#e5b388"/><rect x="253" width="205" height="8" fill="#e5b388"/><rect x="468" width="99" height="8" fill="#e5b388"/><rect x="577" width="182" height="8" fill="#e5b388"/><rect x="769" width="83" height="8" fill="#e5b388"/><rect x="862" width="133" height="8" fill="#e5b388"/><rect x="1005" width="208" height="8" fill="#e5b388"/><rect x="1223" width="91" height="8" fill="#e5b388"/><rect x="1325" width="153" height="8" fill="#e5b388"/></svg>
+</header>
+
+<main id="changes" class="changes" aria-live="polite"><p>Loading the list of changes …</p></main>
+<p class="changes back" style="padding-top:0"><a href="./">← Back to the Book Classifier</a></p>
+
+<footer>
+  <p id="citation-block"></p>
+  <p><b>Data:</b> derived from OpenITI release 2023.1.8 (<a href="https://doi.org/10.5281/zenodo.10007820">https://doi.org/10.5281/zenodo.10007820</a>), CC BY-NC-SA 4.0; code under the MIT License (<a href="https://github.com/maximromanov/classifier">github.com/maximromanov/classifier</a>).</p>
+  <p class="logos">
+    <img src="img/eis1600_SMALL_mix_blue_white.png" alt="EIS1600" height="50"><img src="img/OpenITI_Logo_SQ.png" alt="OpenITI" height="50"><img src="img/ERC_logo_SQ.png" alt="ERC" height="50"><img src="img/KITAB_UHH_DFG_COLORS.png" alt="KITAB" height="50"><img src="img/EN_DFG_COLORS.png" alt="DFG Emmy Noether" height="50"><img src="img/rm-mark.png" alt="Maxim Romanov" height="50">
+  </p>
+  <p id="version" class="version"></p>
+  <p class="credit">The Arabic keyboard and regex editor are adapted, with permission, from Peter Verkinderen's <a href="https://github.com/pverkind/arabicVirtualKeyboard">Arabic Virtual Keyboard</a>, itself based on Ahmad Ismail's <a href="http://www.arabic-keyboard.org/">Arabic keyboard</a>.</p>
+</footer>
+<script type="module" src="js/whatsnew.js"></script>
+</body>
+</html>
