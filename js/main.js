@@ -1,11 +1,13 @@
-// OpenITI Book Classifier — page controller: search panel, book profile (?book=<bookURI>), author profile
-// (?author=<authorURI>), each with tabs. The active tab and header choices are in the hash (see share.js).
+// OpenITI Book Classifier — page controller: search panel, book profile (#b=<bookURI>), author profile (#a=<authorURI>), each
+// with tabs; the active tab and header choices follow in the same link (link.js, LINK_KEYS below). Older links still open:
+// ?book= and ?author=, with their #2… hash (share.js).
 import { APP, DEV, CITATION, SHOW_UNCONFIRMED_HEADERS, RELEASES, DEFAULT_RELEASE, dataBase, dataCommit, ngramreaderURL } from './config.js'
 import { loadStatic, readByKey } from './data.js'
 import { prepare, radarBook, rollingSeries, entropyAcrossTypes, entropyTypeTime, tfidfTable, radarAuthor, authorBooksTable, authorBooksMatrix, authorTopTypes, undefinedWindow, headersTable, authorOfURI, TYPES } from './compute.js'
 import { radarBookChart, radarAuthorChart, bookBarsChart, rankedTypesChart, allBooksChart, topTypesChart, rollingChart, entropyLineChart, boxTypesChart, boxTypeTimeChart, headerShapes } from './charts.js'
 import { redraw, setShapes, exportBar, setTypeCodes, typeLabel } from './chartkit.js'
-import { createTours, cleanLink } from './tour.js'
+import { createTours, cleanLink, tourQuery } from './tour.js'
+import { enc, dec, readPairs, writePairs } from './link.js'
 import { renderTable, esc, fold } from './tables.js'
 import { toTSV, saveText, saveBlob, zipFiles, stamp } from './download.js'
 import { panel, tabs, dialogs, citeDialog, copyText, fontControls, bandMenu, themeControl } from './ui.js'
@@ -27,8 +29,8 @@ const bookTitleHTML = uri => { const l = bookLabel(uri); return l ? italics(l.la
 const bookTitleText = uri => bookLabel(uri)?.label ?? uri
 const authorNameText = a => authorLabel(a)?.authorName ?? a
 const ar = s => (s ? `<span dir="rtl" lang="ar" class="ar">${esc(s)}</span>` : '')
-const bookHref = uri => `?book=${encodeURIComponent(uri)}`
-const authorHref = a => `?author=${encodeURIComponent(a)}`
+const bookHref = uri => `./#b=${enc(uri)}`
+const authorHref = a => `./#a=${enc(a)}`
 const bookLink = uri => `<a href="${bookHref(uri)}" data-nav>${bookTitleHTML(uri)}</a>`
 const asCaption = s => s.replace(/\*([^*]+)\*/g, '<i>$1</i>')      // *title* -> italics in a chart caption
 
@@ -67,17 +69,27 @@ document.addEventListener('click', e => {
   e.preventDefault(); navigate(a.getAttribute('href')); UI.autoFold()
 })
 addEventListener('popstate', async () => { S.wanted = await readHash(); route() })
-const readHash = async () => { const o = await unpackState(location.hash); return { tab: o?.t, levels: o?.h, bookChart: o?.v, authorChart: o?.a } }
+// the link (link.js): b=<book> or a=<author>, then t (tab; default the first), h (header levels, e.g. 12; default H1 when the book
+// has H1 headers, else none; "h=" = none), c (book chart: radar; default bars), w (author chart: books or radar; default
+// ranked), r (data release; none = 2023.1.8). Older links: ?book= / ?author= with a #2… hash.
+const linkPairs = () => readPairs(location.hash, ['b', 'a'])
+const profile = () => { const lp = linkPairs(), q = new URLSearchParams(location.search)
+  return lp ? { book: lp.has('b') ? dec(lp.get('b')) : null, author: lp.has('a') ? dec(lp.get('a')) : null } : { book: q.get('book'), author: q.get('author') } }
+const readHash = async () => { const lp = linkPairs(), v = k => (lp.has(k) ? dec(lp.get(k)) : undefined)
+  if (lp) return { tab: v('t'), levels: v('h'), bookChart: v('c'), authorChart: v('w') }
+  const o = await unpackState(location.hash); return { tab: o?.t, levels: o?.h, bookChart: o?.v, authorChart: o?.a } }
 async function updateURL() {
   const V = S.view; if (!V) return
   const defaultLevels = V.headerLevels?.includes(1) ? '1' : ''
   const h = V.levelsOn ? [...V.levelsOn].sort().join('') : defaultLevels
   const st = { ...(T && T.active !== 'overview' && T.active !== 'a-overview' ? { t: T.active } : {}), ...(V.kind === 'book' && h !== defaultLevels ? { h } : {}), ...(V.kind === 'book' && V.bookChart !== 'bars' ? { v: V.bookChart } : {}), ...(V.authorChart !== 'ranked' ? { a: V.authorChart } : {}) }
-  history.replaceState(null, '', location.pathname + location.search + (Object.keys(st).length ? await packState(st) : ''))
+  const pairs = [V.kind === 'book' ? ['b', enc(V.bookURI)] : ['a', enc(V.authorURI)]]
+  for (const [key, field] of [['t', 't'], ['h', 'h'], ['c', 'v'], ['w', 'a']]) if (st[field] !== undefined) pairs.push([key, enc(st[field])])
+  history.replaceState(null, '', location.pathname + tourQuery() + writePairs(pairs))
 }
 
 async function route() {
-  const p = new URLSearchParams(location.search), book = p.get('book'), author = p.get('author')
+  const { book, author } = profile()
   $('#messages').innerHTML = ''
   const on = !!(book || author)
   $('#empty').hidden = on; $('#howto').hidden = on; for (const id of ['cite', 'copy-link', 'download-all']) $('#' + id).disabled = !on
@@ -370,7 +382,7 @@ async function init() {
   $('#q').onkeydown = e => { if (e.key === 'Enter') { const a = $('#results-list a'); if (a) navigate(a.getAttribute('href')) } }
   $('#help-howto').innerHTML = $('#howto').innerHTML
   const tq = new URLSearchParams(location.search)
-  if (!(tq.get('tour') && await TOURS.start(tq.get('tour'), Number(tq.get('stop')) || 1))) { if (!location.search) UI.fold(false); await route() }
+  if (!(tq.get('tour') && await TOURS.start(tq.get('tour'), Number(tq.get('stop')) || 1))) { const pr = profile(); if (!pr.book && !pr.author) UI.fold(false); await route() }
   S.ready = true
 }
 init()

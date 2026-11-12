@@ -2,6 +2,12 @@
 
 Newest first. The dates are those of the releases.
 
+## 2.04 — to be dated at release
+
+- Shorter, readable links that show the book or author and the view.
+- All older links still work.
+- The Cite dialog copies Markdown.
+
 ## 2.03 — 2026-11-10
 
 - An Arabic keyboard for the search box, adapted from Peter Verkinderen's Arabic Virtual Keyboard.

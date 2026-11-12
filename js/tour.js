@@ -2,11 +2,13 @@
 // A tour is data: tours/tours.json. Each stop opens the real app state through the app's own link-opening code, and a small
 // card explains the view. While a tour runs, the address carries ?tour=<id>&stop=<n> beside the real state; "Copy link" and
 // citations use cleanLink(), without those two.
+import { pretty } from './link.js'
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 // `code` first, so that the asterisk in `\w*` stays; then *italics*
 const inline = s => esc(s).split('`').map((p, i) => (i % 2 ? `<code>${p}</code>` : p.replace(/\*([^*]+)\*/g, '<i>$1</i>'))).join('')
 export const tourQuery = () => { const q = new URLSearchParams(location.search), t = q.get('tour'); return t ? `?tour=${encodeURIComponent(t)}&stop=${encodeURIComponent(q.get('stop') ?? 1)}` : '' }
-export const cleanLink = () => { const u = new URL(location.href); u.searchParams.delete('tour'); u.searchParams.delete('stop'); return u.href }
+// the address of the view, without the tour, printed readably (link.js): Copy link, citations, captions, READMEs
+export const cleanLink = () => { const u = new URL(location.href); u.searchParams.delete('tour'); u.searchParams.delete('stop'); return pretty(u.href) }
 
 export function createTours({ open, links = {} }) {
   let list = null, tour = null, stop = 0, card = null, moving = false

@@ -50,6 +50,21 @@ Tours are data: `tours/tours.json`. Editing or adding a tour needs no change to 
 - `state`: the view the stop opens, through the same code as a link. `panel` is `"open"` or `"closed"`.
 - `state` keys: `q` text typed into the search box, `book` or `author` (URI; without either, the start page), `t` tab (`overview`, `text`, `entropy`, `similar`, `author`; for an author `a-overview`, `a-books`), `h` header levels on (`""`, `"1"`, `"2"`, `"12"`), `v: "radar"` classic radar on the book overview, `a` author chart (`"books"`, `"radar"`), `list: 1` opens the table of headers filtered to that level (tour stops only). Keys left out take the default.
 
+## Links
+
+A profile's link is short and readable (`js/link.js`; the keys in `js/main.js`). Example: `https://maximromanov.github.io/classifier/#b=0597IbnJawzi.TalbisIblis&t=text`.
+
+| Key | State | Values (default left out) |
+|---|---|---|
+| `b` / `a` | the book / the author | an OpenITI URI (one of the two, first) |
+| `t` | tab | `text`, `entropy`, `similar`, `author`; `a-books` (default the first tab) |
+| `h` | header levels shown | e.g. `12`; `h=` for none (default H1, when the book has H1 headers) |
+| `c` | book chart | `radar` (default bars) |
+| `w` | author chart | `books`, `radar` (default ranked) |
+| `r` | data release | only for a release after 2023.1.8 |
+
+The encoding is the NgramReader's. Older links still open: `?book=` and `?author=`, with their `#2…` hash. After opening one, the address shows the new form.
+
 ## Changes
 
 See [`CHANGES.md`](CHANGES.md), also shown in the app as *What's new* (`changes.html`).

@@ -1,5 +1,5 @@
 // Shared interface pieces (both apps; keep both copies the same): foldable panel, tabs, dialogs, copy, toast.
-import { FORMATS, unlit, unIso } from './cite.js'
+import { FORMATS, unlit, unIso, allMarkdown } from './cite.js'
 import { setFontDelta } from './chartkit.js'
 const $ = s => document.querySelector(s)
 const phone = () => innerWidth < 600
@@ -79,5 +79,9 @@ export function citeDialog(get) {
   }
   tabsEl.onclick = e => { const b = e.target.closest('[data-fmt]'); if (b) { fmt = b.dataset.fmt; draw() } }
   dlg.querySelector('.cite-copy').onclick = () => copyText(dlg.dataset.text, 'Citation copied')
-  return { open() { draw(); dlg.showModal() }, text: f => unIso(unlit(FORMATS[f].make(get()).replace(/\*/g, ''))) }
+  // Markdown: the shown format, or all four (cite.js); the buttons are added here, so both apps get them
+  if (!dlg.querySelector('.cite-copy-md')) dlg.querySelector('.cite-copy').insertAdjacentHTML('afterend', ' <button type="button" class="cite-copy-md">Copy as Markdown</button> <button type="button" class="cite-copy-all-md">Copy all as Markdown</button>')
+  dlg.querySelector('.cite-copy-md').onclick = () => copyText(FORMATS[fmt].md(get()), 'Citation copied as Markdown')
+  dlg.querySelector('.cite-copy-all-md').onclick = () => copyText(allMarkdown(get()), 'All four citations copied as Markdown')
+  return { open() { draw(); dlg.showModal() }, text: f => unIso(unlit(FORMATS[f].make(get()).replace(/\*/g, ''))), markdown: f => (f ? FORMATS[f].md(get()) : allMarkdown(get())) }
 }
