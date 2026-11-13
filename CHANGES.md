@@ -7,6 +7,7 @@ Newest first. The dates are those of the releases.
 - Shorter, readable links that show the book or author and the view.
 - All older links still work.
 - The Cite dialog copies Markdown.
+- An "A" button between − and + returns the text to its default size.
 
 ## 2.03 — 2026-11-10
 

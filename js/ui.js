@@ -32,7 +32,7 @@ export function tabs(host, list, onChange) {
   return api
 }
 
-// text size: - and + next to Help, 0.5 pt per step (0.5 pt = 2/3 px), remembered in this browser
+// text size: −, A (back to the default) and +, 0.5 pt per step (0.5 pt = 2/3 px), remembered in this browser
 // Auto, Light or Dark: kept in this browser, never in a link; the head of index.html sets it before the first paint
 export function themeControl(onChange) {
   const root = document.documentElement, system = matchMedia('(prefers-color-scheme: dark)'), boxes = document.querySelectorAll('.theme-sw')
@@ -45,9 +45,13 @@ export function themeControl(onChange) {
 
 export function fontControls(onChange) {
   let step = 0; try { step = Number(localStorage.getItem('openiti-font-step')) || 0 } catch {}
-  const apply = () => { const px = step * 2 / 3; document.documentElement.style.setProperty('--fd', `${px}px`); setFontDelta(px); try { localStorage.setItem('openiti-font-step', step) } catch {} }
+  const reset = $('#font-reset')
+  const apply = () => { const px = step * 2 / 3; document.documentElement.style.setProperty('--fd', `${px}px`); setFontDelta(px); try { localStorage.setItem('openiti-font-step', step) } catch {}
+    if (reset) { reset.disabled = step === 0; reset.title = step === 0 ? 'Default text size (now in use)' : 'Back to the default text size' } }
   const change = d => { step = Math.max(-3, Math.min(8, step + d)); apply(); onChange() }
-  $('#font-minus').onclick = () => change(-1); $('#font-plus').onclick = () => change(1); apply()
+  $('#font-minus').onclick = () => change(-1); $('#font-plus').onclick = () => change(1)
+  if (reset) reset.onclick = () => { step = 0; apply(); onChange() }
+  apply()
 }
 
 // the band's menu on phones: the button opens the same links; Esc closes it and returns to the button

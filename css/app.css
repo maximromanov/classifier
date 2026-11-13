@@ -65,6 +65,7 @@ header.site a:focus-visible, header.site button:focus-visible { outline: 2px sol
 .fontsize button { min-height: 26px; width: 28px; padding: 0; border-radius: 0; margin-left: -1px; }
 .fontsize button:first-child { border-radius: 5px 0 0 5px; margin-left: 0; }
 .fontsize button:last-child { border-radius: 0 5px 5px 0; }
+#font-reset { font-family: var(--serif); font-size: calc(12px + var(--fd)); }
 #translit-pop { position: absolute; z-index: 40; display: flex; gap: 3px; align-items: center; padding: 4px; background: var(--bg); border: 1px solid var(--line2); border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.14); }
 #translit-pop button { min-height: 34px; min-width: 34px; padding: 0 6px; font-size: calc(16px + var(--fd)); }
 #translit-pop button.on { background: var(--soft); border-color: var(--accent); }
