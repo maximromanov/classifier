@@ -2,12 +2,13 @@
 
 Newest first. The dates are those of the releases.
 
-## 2.04 — to be dated at release
+## 2.04 — 2026-11-13
 
-- Shorter, readable links that show the book or author and the view.
-- All older links still work.
-- The Cite dialog copies Markdown.
-- An "A" button between − and + returns the text to its default size.
+- Shorter, readable links that show the book or author and the view, for example `#b=0597IbnJawzi.TalbisIblis&t=text`.
+- Links no longer carry the data version: a link without one refers to OpenITI release 2023.1.8.
+- All older links still work and open the same view.
+- The Cite dialog copies each citation, or all four formats at once, as Markdown.
+- An “A” button between − and + returns the text to its default size.
 
 ## 2.03 — 2026-11-10
 

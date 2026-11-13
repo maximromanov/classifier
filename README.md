@@ -86,6 +86,10 @@ export default { dataBase: 'http://localhost:8001/data/', commit: '<local data c
 
 ## Releasing a new version
 
+**Every release, website-only ones included:** the commit that is tagged and pushed sets the version in `js/config.js` and `CITATION.cff` and dates the first entry of `CHANGES.md` (`## 2.05 — YYYY-MM-DD`, the release date). Check it before tagging, in the project folder: `python tools/release/release_check.py apps/<app> <version>`.
+
+For a new Zenodo version, also:
+
 1. On Zenodo, reserve the DOI of the new version.
 2. In `js/config.js`, set `CITATION.doi`, `CITATION.released`, `CITATION.title` and `CITATION.year` as needed, and the same in `CITATION.cff`.
 3. Move the pinned data commit in `js/config.js` if the data changed (same commit as the NgramReader).
